@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "static", "runtimeExecutable": "npx", "runtimeArgs": ["-y", "serve", "-l", "8765", "--no-clipboard", "."], "port": 8765 }
+  ]
+}
