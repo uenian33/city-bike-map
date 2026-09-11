@@ -315,11 +315,13 @@
     el.sheet.classList.remove('closing');
     if (el.sheet.hidden) { el.sheet.hidden = false; el.sheet.classList.add('opening'); setTimeout(() => el.sheet.classList.remove('opening'), 400); }
     applySnap('half'); el.chip.classList.add('pushed');
+    requestAnimationFrame(updateStack);
   }
   function closeSheet() {
     if (!el.sheet.hidden) {
       el.sheet.classList.add('closing');
-      sheetCloseTimer = setTimeout(() => { el.sheet.hidden = true; el.sheet.classList.remove('closing'); }, 260);
+      sheetCloseTimer = setTimeout(() => { el.sheet.hidden = true; el.sheet.classList.remove('closing'); updateStack(); }, 260);
+      updateStack();
     }
     el.chip.classList.remove('pushed');
     const s = selectedId ? stations.get(selectedId) : null;
@@ -342,14 +344,30 @@
   function sheetHeight() { return el.sheet.getBoundingClientRect().height; }
   function applySnap(name) {
     el.sheet.classList.remove('collapsed', 'full', 'dragging');
+    document.body.classList.remove('sheet-drag');
     if (name !== 'half') el.sheet.classList.add(name);
     el.sheet.style.maxHeight = ''; el.sheet.style.transform = '';
   }
+  // Keep the right-hand control stack and the FAB floating just above the sheet on phones.
+  function updateStack() {
+    let h = 0;
+    if (isPhone() && !el.sheet.hidden && !el.sheet.classList.contains('closing')) {
+      // offsetHeight ignores the entrance animation's transform; only the drag-to-dismiss
+      // translate (set inline) should count.
+      const ty = parseFloat((el.sheet.style.transform.match(/translateY\(([-\d.]+)px\)/) || [])[1]) || 0;
+      h = Math.max(0, el.sheet.offsetHeight - ty);
+    }
+    document.documentElement.style.setProperty('--sheet-h', `${Math.round(h)}px`);
+    document.body.classList.toggle('sheet-tall', h > innerHeight * 0.55);
+    document.body.classList.toggle('sheet-open', h > 0);
+  }
+  new ResizeObserver(updateStack).observe(el.sheet);
+  addEventListener('resize', updateStack);
   grabber.addEventListener('pointerdown', (e) => {
     if (!isPhone()) return;
     drag = { y0: e.clientY, h0: sheetHeight(), t0: performance.now(), moved: false, id: e.pointerId };
     grabber.setPointerCapture(e.pointerId);
-    el.sheet.classList.add('dragging');
+    el.sheet.classList.add('dragging'); document.body.classList.add('sheet-drag');
   });
   grabber.addEventListener('pointermove', (e) => {
     if (!drag || e.pointerId !== drag.id) return;
@@ -359,6 +377,7 @@
     const { full } = snapHeights();
     if (h >= 80) { el.sheet.style.maxHeight = `${Math.min(h, full)}px`; el.sheet.style.transform = ''; }
     else { el.sheet.style.maxHeight = '80px'; el.sheet.style.transform = `translateY(${80 - h}px)`; }
+    updateStack();
   });
   const endDrag = (e) => {
     if (!drag || e.pointerId !== drag.id) return;
