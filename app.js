@@ -404,31 +404,27 @@
   }
   new ResizeObserver(updateStack).observe(el.sheet);
   addEventListener('resize', updateStack);
-  grabber.addEventListener('pointerdown', (e) => {
-    if (!isPhone()) return;
-    drag = { y0: e.clientY, h0: sheetHeight(), t0: performance.now(), moved: false, id: e.pointerId };
-    grabber.setPointerCapture(e.pointerId);
+  // Shared drag machinery: the handle (pointer events, works with a mouse too) and the whole
+  // sheet body (touch events) both feed it. Dragging the body also stops mobile browsers from
+  // interpreting a downward swipe as pull-to-refresh.
+  function dragStart(y) {
+    drag = { y0: y, h0: sheetHeight(), t0: performance.now(), wasCollapsed: el.sheet.classList.contains('collapsed') };
     el.sheet.classList.add('dragging'); document.body.classList.add('sheet-drag');
-  });
-  grabber.addEventListener('pointermove', (e) => {
-    if (!drag || e.pointerId !== drag.id) return;
-    const dy = e.clientY - drag.y0;
-    if (Math.abs(dy) > 3) drag.moved = true;
-    const h = drag.h0 - dy;
+  }
+  function dragMove(y) {
+    if (!drag) return;
+    const h = drag.h0 - (y - drag.y0);
     const { full } = snapHeights();
     if (h >= 80) { el.sheet.style.maxHeight = `${Math.min(h, full)}px`; el.sheet.style.transform = ''; }
     else { el.sheet.style.maxHeight = '80px'; el.sheet.style.transform = `translateY(${80 - h}px)`; }
     updateStack();
-  });
-  const endDrag = (e) => {
-    if (!drag || e.pointerId !== drag.id) return;
-    const dy = e.clientY - drag.y0, dt = Math.max(1, performance.now() - drag.t0), v = dy / dt; // px per ms, + = down
-    const h = drag.h0 - dy, snaps = snapHeights();
-    const wasCollapsed = el.sheet.classList.contains('collapsed');
+  }
+  function dragEnd(y, { tap = true } = {}) {
+    if (!drag) return;
+    const dy = y - drag.y0, dt = Math.max(1, performance.now() - drag.t0), v = dy / dt; // px per ms, + = down
+    const h = drag.h0 - dy, snaps = snapHeights(), wasCollapsed = drag.wasCollapsed;
     drag = null;
-    if (Math.abs(dy) <= 3) { // tap
-      applySnap(wasCollapsed ? 'half' : 'collapsed'); return;
-    }
+    if (Math.abs(dy) <= 3) { if (tap) applySnap(wasCollapsed ? 'half' : 'collapsed'); else applySnap(wasCollapsed ? 'collapsed' : el.sheet.classList.contains('full') ? 'full' : 'half'); return; }
     if ((v > 0.6 && h < snaps.half) || h < 90 || (wasCollapsed && dy > 40)) { applySnap('half'); closeSheet(); return; }
     let target = 'half';
     if (v > 0.4) target = h < snaps.half ? 'collapsed' : 'half';
@@ -438,9 +434,43 @@
       target = d[0][1];
     }
     applySnap(target);
+  }
+  // Handle: pointer events.
+  grabber.addEventListener('pointerdown', (e) => {
+    if (!isPhone() || e.pointerType === 'touch') return; // touch is handled by the sheet-wide handler
+    dragStart(e.clientY); grabber.setPointerCapture(e.pointerId);
+  });
+  grabber.addEventListener('pointermove', (e) => dragMove(e.clientY));
+  grabber.addEventListener('pointerup', (e) => dragEnd(e.clientY));
+  grabber.addEventListener('pointercancel', (e) => dragEnd(e.clientY));
+  // Whole sheet: touch. Decide per gesture whether the finger scrolls the content or moves the
+  // sheet: moving down from the top of the content, or up while the sheet is not yet full, drags.
+  let touch = null; // { y0, mode: null | 'drag' | 'scroll', onHandle }
+  el.sheet.addEventListener('touchstart', (e) => {
+    if (!isPhone() || e.touches.length !== 1) { touch = null; return; }
+    touch = { y0: e.touches[0].clientY, mode: null, onHandle: !!e.target.closest('#grabber') };
+    if (touch.onHandle) { dragStart(touch.y0); touch.mode = 'drag'; }
+  }, { passive: true });
+  el.sheet.addEventListener('touchmove', (e) => {
+    if (!touch) return;
+    const y = e.touches[0].clientY, dy = y - touch.y0;
+    if (!touch.mode) {
+      if (Math.abs(dy) < 6) return;
+      const canDragDown = dy > 0 && el.sheet.scrollTop <= 0;
+      const canDragUp = dy < 0 && !el.sheet.classList.contains('full');
+      touch.mode = canDragDown || canDragUp ? 'drag' : 'scroll';
+      if (touch.mode === 'drag') dragStart(touch.y0);
+    }
+    if (touch.mode === 'drag') { e.preventDefault(); dragMove(y); }
+  }, { passive: false });
+  const touchDone = (e) => {
+    if (!touch) return;
+    const y = e.changedTouches[0]?.clientY ?? touch.y0;
+    if (touch.mode === 'drag') dragEnd(y, { tap: touch.onHandle });
+    touch = null;
   };
-  grabber.addEventListener('pointerup', endDrag);
-  grabber.addEventListener('pointercancel', endDrag);
+  el.sheet.addEventListener('touchend', touchDone);
+  el.sheet.addEventListener('touchcancel', touchDone);
 
   const fmtDist = (m) => m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
   const fmtDur = (s) => { const m = Math.max(1, Math.round(s / 60)); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`; };

@@ -43,7 +43,7 @@
 }
 
 * { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; overflow: hidden; }
+html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; }
 body {
   font-family: var(--font);
   color: var(--text);
@@ -261,6 +261,8 @@ body.sheet-tall .controls, body.sheet-tall .fab { opacity: 0; transform: transla
   transition: max-height var(--slow) var(--spring), transform var(--med) var(--ease), opacity var(--med);
   animation: sheetUp var(--slow) var(--ease) both;
   will-change: transform, max-height;
+  overscroll-behavior: contain; /* never chain into the page's pull-to-refresh */
+  -webkit-overflow-scrolling: touch;
 }
 .sheet.closing { animation: sheetDown var(--med) var(--ease) forwards; pointer-events: none; }
 @keyframes sheetUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
