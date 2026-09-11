@@ -8,14 +8,24 @@ with live bike counts, your position, and a walking route to the nearest bike.
 ## Features
 
 - Every station is a pin; the number on the pin is the bikes available right
-  now (green: plenty, amber: ≤3, grey: none / closed). Zoom out to see all
-  456 stations at once, zoom in for full-size pins.
+  now (green: plenty, amber: ≤3, grey: none / closed). Zoomed out, all 456
+  stations are drawn by the GPU as MapLibre circle/text layers; from zoom 14
+  the stations inside the viewport become HTML "glass" pins, added and removed
+  as you pan. Nothing off-screen costs anything.
 - **My location** button shows your position and accuracy.
 - **Nearest bike** finds the closest station that actually has a bike and
   draws a walking route with turn-by-turn steps and an ETA.
+- **Search** matches station names and, via Photon (OpenStreetMap), streets,
+  addresses and places — typing "emma" suggests EMMA, the Espoo Museum of
+  Modern Art. Picking a place drops a pin and lists the nearest stations.
 - Tap any pin (or search by name) for bikes, free docks, capacity, distance,
   directions, and an "Open in Maps" hand-off (Apple Maps on Apple devices,
   Google Maps elsewhere).
+- **Ride from here** plans a cycling route between two stations (Valhalla
+  bicycle profile tuned for city bikes), shows the ride time against HSL's
+  free 30-minute limit, and warns when the destination has no free docks.
+- **Map view** switcher: Standard (follows light/dark), Detailed, Satellite
+  (Esri World Imagery), Dark. Remembered across visits.
 - Refreshes every 60 s and whenever the tab becomes visible again.
 - Responsive: side panel on desktop and tablet, bottom sheet on phones.
   Follows the system light/dark theme.
@@ -28,7 +38,9 @@ No build step — three static files.
 |---|---|
 | Station data | HSL GBFS 2.2 feed (`gbfs.theta.fifteen.eu`), CORS-enabled, no key |
 | Base map | [OpenFreeMap](https://openfreemap.org) vector tiles (`positron` / `dark`), rendered with MapLibre GL JS |
-| Walking routes | [Valhalla](https://valhalla1.openstreetmap.de) pedestrian profile; public OSRM as a geometry fallback |
+| Walking & cycling routes | [Valhalla](https://valhalla1.openstreetmap.de) pedestrian / bicycle profiles; public OSRM as a geometry fallback |
+| Address & place search | [Photon](https://photon.komoot.io) (OpenStreetMap), biased to your position and limited to the Helsinki region |
+| Satellite view | Esri World Imagery raster tiles |
 
 ## Develop
 

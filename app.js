@@ -21,9 +21,32 @@
 
   // ---------- Map ----------
   const dark = matchMedia('(prefers-color-scheme: dark)');
-  const styleUrl = (isDark) => `https://tiles.openfreemap.org/styles/${isDark ? 'dark' : 'positron'}`;
+  const OFM = 'https://tiles.openfreemap.org/styles/';
+  const SATELLITE_STYLE = {
+    version: 8,
+    glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+    sources: {
+      esri: {
+        type: 'raster', tileSize: 256, maxzoom: 19,
+        tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+        attribution: 'Imagery © Esri, Maxar, Earthstar Geographics',
+      },
+    },
+    layers: [{ id: 'esri', type: 'raster', source: 'esri' }],
+  };
+  // Map views. 'auto' follows the system theme; the others are explicit.
+  const VIEWS = {
+    auto: { label: 'Standard', style: () => OFM + (dark.matches ? 'dark' : 'positron'), dark: () => dark.matches },
+    detailed: { label: 'Detailed', style: () => OFM + 'liberty', dark: () => false },
+    satellite: { label: 'Satellite', style: () => SATELLITE_STYLE, dark: () => true },
+    dark: { label: 'Dark', style: () => OFM + 'dark', dark: () => true },
+  };
+  let view = 'auto';
+  try { if (VIEWS[localStorage.getItem('cbm-view')]) view = localStorage.getItem('cbm-view'); } catch {}
+  const isDarkMap = () => VIEWS[view].dark();
+  const styleUrl = () => VIEWS[view].style();
   const map = new maplibregl.Map({
-    container: el.map, style: styleUrl(dark.matches),
+    container: el.map, style: styleUrl(),
     center: [HELSINKI[1], HELSINKI[0]], zoom: 12.5, minZoom: 9, maxZoom: 19,
     attributionControl: false, pitchWithRotate: false, dragRotate: false, touchPitch: false,
   });
@@ -35,31 +58,84 @@
   map.once('load', () => document.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show'));
 
   const EMPTY = { type: 'FeatureCollection', features: [] };
-  let routeGeo = EMPTY, accGeo = EMPTY;
+  let routeGeo = EMPTY, accGeo = EMPTY, stationGeo = EMPTY;
+  // Below this zoom stations are drawn by the GPU (circle + text layers); above it the
+  // stations inside the viewport become HTML "glass" pins. Both are cheap.
+  const PIN_ZOOM = 14;
+  const LEVEL_COLOR = ['match', ['get', 'level'], 'ok', '#34c759', 'warn', '#ff9f0a', '#8e8e93'];
   function addOverlays() {
     if (map.getSource('route')) return;
+    const isDark = isDarkMap();
+    el.map.classList.toggle('map-dark', isDark);
+    map.addSource('stations', { type: 'geojson', data: stationGeo });
+    map.addLayer({
+      id: 'st-circle', type: 'circle', source: 'stations', maxzoom: PIN_ZOOM,
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 4, 11, 7, 13, 11, PIN_ZOOM, 13],
+        'circle-color': isDark ? '#1e2026' : '#ffffff',
+        'circle-stroke-color': LEVEL_COLOR,
+        'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, 1.5, 12, 2.5],
+        'circle-opacity': 0.95,
+      },
+    });
+    map.addLayer({
+      id: 'st-selected', type: 'circle', source: 'stations', maxzoom: PIN_ZOOM,
+      filter: ['==', ['get', 'id'], selectedId ?? ''],
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 8, 11, 12, 13, 17, PIN_ZOOM, 19],
+        'circle-color': '#0a84ff', 'circle-opacity': 0.25,
+      },
+    }, 'st-circle');
+    map.addLayer({
+      id: 'st-count', type: 'symbol', source: 'stations', minzoom: 11, maxzoom: PIN_ZOOM,
+      layout: {
+        'text-field': ['to-string', ['get', 'bikes']], 'text-font': ['Noto Sans Bold'],
+        'text-size': ['interpolate', ['linear'], ['zoom'], 11, 8, 13, 11, PIN_ZOOM, 12],
+        'text-allow-overlap': true, 'text-ignore-placement': true,
+      },
+      paint: { 'text-color': ['case', ['==', ['get', 'level'], 'none'], '#8e8e93', isDark ? '#f2f2f7' : '#1c1c1e'] },
+    });
     map.addSource('route', { type: 'geojson', data: routeGeo });
     map.addSource('me-acc', { type: 'geojson', data: accGeo });
     map.addLayer({ id: 'me-acc', type: 'fill', source: 'me-acc', paint: { 'fill-color': '#0a84ff', 'fill-opacity': 0.1 } });
     map.addLayer({ id: 'me-acc-line', type: 'line', source: 'me-acc', paint: { 'line-color': '#0a84ff', 'line-opacity': 0.35, 'line-width': 1 } });
     map.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': dark.matches ? '#111318' : '#ffffff', 'line-width': 10, 'line-opacity': 0.9 } });
+      paint: { 'line-color': isDark ? '#111318' : '#ffffff', 'line-width': 10, 'line-opacity': 0.9 } });
     map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': '#0a84ff', 'line-width': 6 } });
+      paint: { 'line-color': ['match', ['get', 'mode'], 'bike', '#34c759', '#0a84ff'], 'line-width': 6 } });
   }
   map.on('style.load', addOverlays);
-  dark.addEventListener('change', (e) => map.setStyle(styleUrl(e.matches)));
+  // Layer-scoped handlers are looked up by id at event time, so they survive setStyle().
+  map.on('click', 'st-circle', (e) => {
+    const f = e.features?.[0]; if (!f) return;
+    clickedFeature = true;
+    select(String(f.id), false);
+  });
+  map.on('mouseenter', 'st-circle', () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', 'st-circle', () => { map.getCanvas().style.cursor = ''; });
+  function setView(v) {
+    if (!VIEWS[v]) return;
+    view = v;
+    try { localStorage.setItem('cbm-view', v); } catch {}
+    map.setStyle(styleUrl(), { diff: false });
+    document.querySelectorAll('.view-opt').forEach((b) => b.classList.toggle('active', b.dataset.view === v));
+    $('view-menu').hidden = true;
+  }
+  dark.addEventListener('change', () => { if (view === 'auto') map.setStyle(styleUrl(), { diff: false }); });
+  $('layers').addEventListener('click', (e) => { e.stopPropagation(); const m = $('view-menu'); m.hidden = !m.hidden; });
+  document.querySelectorAll('.view-opt').forEach((b) => {
+    b.classList.toggle('active', b.dataset.view === view);
+    b.addEventListener('click', () => setView(b.dataset.view));
+  });
+  document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#view-menu, #layers')) $('view-menu').hidden = true; });
   const setRoute = (geo) => { routeGeo = geo; map.getSource('route')?.setData(geo); };
   const setAcc = (geo) => { accGeo = geo; map.getSource('me-acc')?.setData(geo); };
+  let clickedFeature = false;
+  const setSelectedLayer = () => { if (map.getLayer('st-selected')) map.setFilter('st-selected', ['==', ['get', 'id'], selectedId ?? '']); };
 
   let meMarker = null, me = null; // me = {lat, lon, acc}
 
-  const zoomClass = () => {
-    const z = map.getZoom();
-    el.map.classList.toggle('zoom-vfar', z < 11);
-    el.map.classList.toggle('zoom-far', z >= 11 && z < 12.5);
-    el.map.classList.toggle('zoom-mid', z >= 12.5 && z < 14.5);
-  };
+  const zoomClass = () => el.map.classList.toggle('zoom-mid', map.getZoom() < 15.5);
   map.on('zoom', zoomClass);
   zoomClass();
 
@@ -79,6 +155,7 @@
 
   const level = (s) => (!s.renting || s.bikes === 0) ? 'none' : s.bikes <= 3 ? 'warn' : 'ok';
   function paintPin(s) {
+    if (!s.el) return;
     const d = s.el;
     d.className = `station-pin ${level(s)}${s.id === selectedId ? ' selected' : ''}`;
     d.textContent = s.bikes;
@@ -112,18 +189,41 @@
     return last_updated ? new Date(last_updated * 1000) : new Date();
   }
   function renderStations() {
+    stationGeo = {
+      type: 'FeatureCollection',
+      features: [...stations.values()].map((s) => ({
+        type: 'Feature', id: s.id,
+        properties: { id: s.id, bikes: s.bikes, level: level(s) },
+        geometry: { type: 'Point', coordinates: [s.lon, s.lat] },
+      })),
+    };
+    map.getSource('stations')?.setData(stationGeo);
+    syncPins();
+  }
+  // Keep HTML pins only for stations inside the (padded) viewport, and only when zoomed in.
+  const visible = new Set();
+  function syncPins() {
+    const z = map.getZoom();
+    const b = z >= PIN_ZOOM ? map.getBounds() : null;
+    const pad = b ? (b.getEast() - b.getWest()) * 0.15 : 0;
     for (const s of stations.values()) {
-      if (!s.marker) {
-        const wrap = document.createElement('div');
-        wrap.className = 'pin-wrap';
-        s.el = document.createElement('div');
-        wrap.appendChild(s.el);
-        wrap.addEventListener('click', (e) => { e.stopPropagation(); select(s.id, false); });
-        s.marker = new maplibregl.Marker({ element: wrap, anchor: 'bottom' }).setLngLat([s.lon, s.lat]).addTo(map);
-      }
-      paintPin(s);
+      const show = b && s.lon > b.getWest() - pad && s.lon < b.getEast() + pad
+        && s.lat > b.getSouth() - pad / 2 && s.lat < b.getNorth() + pad / 2;
+      if (show) {
+        if (!s.marker) {
+          const wrap = document.createElement('div');
+          wrap.className = 'pin-wrap';
+          s.el = document.createElement('div');
+          wrap.appendChild(s.el);
+          wrap.addEventListener('click', (e) => { e.stopPropagation(); select(s.id, false); });
+          s.marker = new maplibregl.Marker({ element: wrap, anchor: 'bottom' }).setLngLat([s.lon, s.lat]);
+        }
+        if (!visible.has(s.id)) { s.marker.addTo(map); visible.add(s.id); }
+        paintPin(s);
+      } else if (visible.has(s.id)) { s.marker.remove(); visible.delete(s.id); }
     }
   }
+  map.on('moveend', syncPins);
   function totals() {
     let bikes = 0, n = 0;
     for (const s of stations.values()) { bikes += s.bikes; n++; }
@@ -137,7 +237,7 @@
       const { bikes, n } = totals();
       el.statusText.textContent = `${n} stations · ${bikes.toLocaleString('en')} bikes · ${at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
       el.liveDot.classList.remove('dot-err'); el.liveDot.classList.add('dot-live');
-      if (selectedId) renderSheet(stations.get(selectedId));
+      rerenderSheet();
       if (initial) fitAll(false);
     } catch (err) {
       console.error(err);
@@ -157,11 +257,14 @@
 
   // ---------- Selection & sheet ----------
   function select(id, fly = true) {
+    if (trip && !trip.to && id !== trip.from) { completeTrip(id); return; }
+    if (trip) trip = null; // picking a station outside the planner ends it
     const prev = selectedId ? stations.get(selectedId) : null;
     selectedId = id;
     const s = stations.get(id);
-    if (prev?.marker) paintPin(prev);
-    if (s?.marker) paintPin(s);
+    if (prev) paintPin(prev);
+    if (s) paintPin(s);
+    setSelectedLayer();
     if (fly && s) map.flyTo({ center: [s.lon, s.lat], zoom: Math.max(map.getZoom(), 16), duration: 700 });
     renderSheet(s);
     openSheet();
@@ -171,9 +274,12 @@
     el.sheet.hidden = true; el.chip.classList.remove('pushed');
     const s = selectedId ? stations.get(selectedId) : null;
     selectedId = null;
-    if (s?.marker) paintPin(s);
+    if (s) paintPin(s);
+    setSelectedLayer();
     setRoute(EMPTY);
     currentRoute = null;
+    trip = null;
+    clearPlace();
   }
   el.sheetClose.addEventListener('click', closeSheet);
   // Bottom sheet: tap or swipe the grabber to collapse / expand (mobile layout).
@@ -199,6 +305,13 @@
   };
 
   let currentRoute = null; // {toId, distance, duration, steps}
+  // Only touch the DOM when the content actually changed, so periodic refreshes don't
+  // reset scroll position or interrupt a tap.
+  let lastSheetHtml = '';
+  function setSheet(html) {
+    if (html === lastSheetHtml) return false;
+    lastSheetHtml = html; el.sheetBody.innerHTML = html; return true;
+  }
   function renderSheet(s) {
     if (!s) return;
     const lv = level(s);
@@ -208,7 +321,7 @@
     const route = currentRoute && currentRoute.toId === s.id ? currentRoute : null;
     const appleUrl = `https://maps.apple.com/?daddr=${s.lat},${s.lon}&dirflg=w`;
     const gUrl = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}&travelmode=walking`;
-    el.sheetBody.innerHTML = `
+    if (!setSheet(`
       <h2>${esc(s.name)}</h2>
       <p class="sub">${esc(status)}${dist ? ' · ' + dist : ''}</p>
       <div class="stats">
@@ -227,12 +340,88 @@
           <svg viewBox="0 0 24 24"><path d="M21.7 11.3l-9-9a1 1 0 0 0-1.4 0l-9 9a1 1 0 0 0 0 1.4l9 9a1 1 0 0 0 1.4 0l9-9a1 1 0 0 0 0-1.4ZM14 14.5V12h-4v3H8v-4a1 1 0 0 1 1-1h5V7.5l3.5 3.5L14 14.5Z"/></svg>
           ${route ? 'Re-route' : 'Directions'}
         </button>
+        <button class="btn" id="ride-btn" ${s.bikes < 1 || !s.renting ? 'title="No bikes here right now"' : ''}>
+          <svg viewBox="0 0 24 24"><path d="M15.5 5.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM5 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM19 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM12 16.5V12h3.5v-1.5H12.4l-2-3.3 2.3-2.2 1.9 2.3H17V5.8h-1.7L13.6 3.7a1.5 1.5 0 0 0-2.2-.2L8.3 6.4a1.5 1.5 0 0 0-.1 2l2.3 3.6v4.5H12Z"/></svg>
+          Ride from here
+        </button>
         <a class="btn" href="${/iPhone|iPad|Macintosh/.test(navigator.userAgent) ? appleUrl : gUrl}" target="_blank" rel="noopener">Open in Maps</a>
       </div>
       ${route && route.steps.length ? `<ol class="steps">${route.steps.map((st) =>
         `<li><span>${esc(st.text)}</span><span class="d">${st.distance ? fmtDist(st.distance) : ''}</span></li>`).join('')}</ol>` : ''}
-    `;
+    `)) return;
     $('dir-btn').addEventListener('click', () => routeTo(s.id));
+    $('ride-btn').addEventListener('click', () => startTrip(s.id));
+  }
+
+  function rerenderSheet() {
+    if (el.sheet.hidden) return;
+    if (trip) renderTripSheet();
+    else if (place && !selectedId) renderPlaceSheet(place);
+    else if (selectedId) renderSheet(stations.get(selectedId));
+  }
+
+  // ---------- Station-to-station cycling trip ----------
+  const FREE_RIDE_MIN = 30; // HSL city bike rides over 30 min cost extra
+  let trip = null; // { from, to, route }
+  function startTrip(fromId) {
+    trip = { from: fromId, to: null, route: null };
+    setRoute(EMPTY); currentRoute = null;
+    renderTripSheet();
+    openSheet();
+    map.flyTo({ zoom: Math.min(map.getZoom(), 14), duration: 500 });
+  }
+  function cancelTrip() {
+    trip = null;
+    setRoute(EMPTY);
+    if (selectedId) renderSheet(stations.get(selectedId));
+  }
+  async function completeTrip(toId) {
+    if (!trip || toId === trip.from) return;
+    trip.to = toId; trip.route = null;
+    renderTripSheet(); openSheet();
+    const a = stations.get(trip.from), b = stations.get(toId);
+    try {
+      const route = await fetchRoute(a, b, 'bike');
+      if (!trip || trip.to !== toId) return;
+      trip.route = route;
+      drawRoute(route, a, b, 'bike');
+      renderTripSheet();
+    } catch (e) { toast(e.message); trip.to = null; renderTripSheet(); }
+  }
+  function renderTripSheet() {
+    if (!trip) return;
+    const a = stations.get(trip.from), b = trip.to ? stations.get(trip.to) : null, r = trip.route;
+    const mins = r ? r.duration / 60 : 0;
+    const over = r && mins > FREE_RIDE_MIN;
+    const bikeSvg = '<svg viewBox="0 0 24 24"><path d="M5 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM19 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM12 16.5V12h3.5v-1.5H12.4l-2-3.3 2.3-2.2 1.9 2.3H17V5.8h-1.7L13.6 3.7a1.5 1.5 0 0 0-2.2-.2L8.3 6.4a1.5 1.5 0 0 0-.1 2l2.3 3.6v4.5H12Z"/></svg>';
+    if (!setSheet(`
+      <h2>Plan a ride</h2>
+      <p class="sub">${b ? 'City bike route between two stations' : 'Tap a destination station on the map, or search for one'}</p>
+      <div class="trip">
+        <div class="trip-row"><span class="station-pin ${level(a)}">${a.bikes}</span><div><div class="trip-name">${esc(a.name)}</div><div class="sub">From · ${a.bikes} bikes available</div></div></div>
+        <div class="trip-line"></div>
+        <div class="trip-row">${b
+          ? `<span class="station-pin dock">${b.docks}</span><div><div class="trip-name">${esc(b.name)}</div><div class="sub">To · ${b.docks} free docks</div></div>`
+          : `<span class="station-pin dash">?</span><div><div class="trip-name dim">Choose destination…</div><div class="sub">Any other station</div></div>`}</div>
+      </div>
+      ${b && !r ? '<p class="sub"><span class="spin" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>Finding a cycling route…</p>' : ''}
+      ${r ? `
+        <div class="route-summary">
+          <span class="big">${fmtDur(r.duration)}</span>
+          <span class="dim">${fmtDist(r.distance)} · cycling</span>
+        </div>
+        ${over ? `<p class="note warn">Over ${FREE_RIDE_MIN} min — HSL charges extra beyond the free ${FREE_RIDE_MIN} min. Consider docking at a station on the way.</p>`
+               : `<p class="note ok">Within the free ${FREE_RIDE_MIN} min ride.</p>`}
+        ${b.docks === 0 ? '<p class="note warn">No free docks at the destination right now — check again before you arrive.</p>' : ''}` : ''}
+      <div class="actions">
+        ${b ? `<button class="btn" id="trip-swap">${bikeSvg} Reverse</button>` : ''}
+        <button class="btn" id="trip-cancel">Done</button>
+      </div>
+      ${r && r.steps.length ? `<ol class="steps">${r.steps.map((st) =>
+        `<li><span>${esc(st.text)}</span><span class="d">${st.distance ? fmtDist(st.distance) : ''}</span></li>`).join('')}</ol>` : ''}
+    `)) return;
+    $('trip-cancel').addEventListener('click', () => { cancelTrip(); closeSheet(); });
+    $('trip-swap')?.addEventListener('click', () => { const f = trip.from; trip.from = trip.to; completeTrip(f); });
   }
 
   // ---------- Geolocation ----------
@@ -247,7 +436,7 @@
     } else meMarker.setLngLat(ll);
     setAcc(me.acc > 25 ? circlePolygon(me.lat, me.lon, me.acc) : EMPTY);
     el.locate.classList.add('active');
-    if (selectedId) renderSheet(stations.get(selectedId));
+    rerenderSheet();
   }
   function locate({ timeout = 12000 } = {}) {
     return new Promise((resolve, reject) => {
@@ -315,11 +504,14 @@
   }
   const cardinal = (b) => ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'][Math.round(((b ?? 0) % 360) / 45) % 8];
 
-  async function fetchRouteValhalla(a, b) {
+  async function fetchRouteValhalla(a, b, mode = 'walk') {
     const q = {
       locations: [{ lat: a.lat, lon: a.lon }, { lat: b.lat, lon: b.lon }],
-      costing: 'pedestrian', units: 'kilometers', language: 'en-US',
-      costing_options: { pedestrian: { walking_speed: 5.0 } },
+      costing: mode === 'bike' ? 'bicycle' : 'pedestrian', units: 'kilometers', language: 'en-US',
+      costing_options: mode === 'bike'
+        // HSL city bikes are heavy 3-speed city bikes: keep the router off fast roads and realistic on speed.
+        ? { bicycle: { bicycle_type: 'City', cycling_speed: 16, use_roads: 0.2, use_hills: 0.3 } }
+        : { pedestrian: { walking_speed: 5.0 } },
     };
     const r = await fetch(`${VALHALLA}?json=${encodeURIComponent(JSON.stringify(q))}`);
     if (!r.ok) throw new Error(`Valhalla ${r.status}`);
@@ -344,19 +536,19 @@
     }
     return out;
   }
-  async function fetchRoute(a, b) {
-    // Valhalla has a real pedestrian profile; the public OSRM demo only routes cars, so it is a
-    // geometry-only fallback with the duration re-estimated at walking pace.
-    try { return await fetchRouteValhalla(a, b); }
+  async function fetchRoute(a, b, mode = 'walk') {
+    // Valhalla has real pedestrian / bicycle profiles; the public OSRM demo only routes cars, so it
+    // is a geometry-only fallback with the duration re-estimated at walking or city-bike pace.
+    try { return await fetchRouteValhalla(a, b, mode); }
     catch (e) {
       console.warn('Valhalla failed, trying OSRM', e);
       const r = await fetchRouteOSRM(a, b);
-      return { ...r, duration: r.distance / 1.3 };
+      return { ...r, duration: r.distance / (mode === 'bike' ? 4.2 : 1.3) };
     }
   }
 
-  function drawRoute(route, from, to) {
-    setRoute({ type: 'Feature', geometry: { type: 'LineString', coordinates: route.coords } });
+  function drawRoute(route, from, to, mode = 'walk') {
+    setRoute({ type: 'Feature', properties: { mode }, geometry: { type: 'LineString', coordinates: route.coords } });
     const b = new maplibregl.LngLatBounds([from.lon, from.lat], [from.lon, from.lat]);
     for (const c of route.coords) b.extend(c);
     b.extend([to.lon, to.lat]);
@@ -395,47 +587,125 @@
     } catch (e) { toast(e.message); }
   });
 
-  // ---------- Search ----------
-  let activeIdx = -1;
-  function search(q) {
-    q = q.trim().toLowerCase();
-    el.clear.hidden = !q;
-    if (!q) { el.results.hidden = true; el.results.innerHTML = ''; return; }
-    const hits = [...stations.values()]
-      .filter((s) => s.name.toLowerCase().includes(q))
-      .sort((a, b) => {
-        const ai = a.name.toLowerCase().startsWith(q) ? 0 : 1, bi = b.name.toLowerCase().startsWith(q) ? 0 : 1;
-        if (ai !== bi) return ai - bi;
-        if (me) return haversine(me, a) - haversine(me, b);
-        return a.name.localeCompare(b.name);
-      }).slice(0, 8);
-    activeIdx = -1;
-    el.results.innerHTML = hits.length ? hits.map((s) => `
+  // ---------- Search: stations + addresses / places (Photon) ----------
+  const PHOTON = 'https://photon.komoot.io/api/';
+  const REGION_BBOX = '24.3,59.95,25.4,60.5'; // Helsinki metropolitan area
+  let activeIdx = -1, searchSeq = 0, placeTimer = null, placeMarker = null, place = null;
+  const stationHits = (q) => [...stations.values()]
+    .filter((s) => s.name.toLowerCase().includes(q))
+    .sort((a, b) => {
+      const ai = a.name.toLowerCase().startsWith(q) ? 0 : 1, bi = b.name.toLowerCase().startsWith(q) ? 0 : 1;
+      if (ai !== bi) return ai - bi;
+      if (me) return haversine(me, a) - haversine(me, b);
+      return a.name.localeCompare(b.name);
+    }).slice(0, 5);
+  async function placeHits(q) {
+    const c = me ?? { lat: map.getCenter().lat, lon: map.getCenter().lng };
+    const url = `${PHOTON}?q=${encodeURIComponent(q)}&lat=${c.lat}&lon=${c.lon}&limit=6&lang=en&bbox=${REGION_BBOX}`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`Photon ${r.status}`);
+    const j = await r.json();
+    const seen = new Set();
+    return j.features.map((f) => {
+      const p = f.properties;
+      const addr = [p.street && `${p.street}${p.housenumber ? ' ' + p.housenumber : ''}`, p.city || p.county].filter(Boolean).join(', ');
+      const name = p.name || addr || p.osm_value;
+      return { key: `${name}|${addr}`, name, addr: name === addr ? (p.postcode || '') : addr, kind: (p.osm_value || p.type || '').replace(/_/g, ' '),
+        lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] };
+    }).filter((h) => !seen.has(h.key) && seen.add(h.key));
+  }
+  const stationLi = (s) => `
       <li role="option" data-id="${s.id}">
         <span class="station-pin ${level(s)}" style="width:28px;height:28px;font-size:11px;flex:none">${s.bikes}</span>
         <span class="name">${esc(s.name)}<div class="sub">${me ? fmtDist(haversine(me, s)) + ' · ' : ''}${s.docks} free docks</div></span>
-      </li>`).join('') : '<li class="sub" style="cursor:default">No stations match</li>';
+      </li>`;
+  const placeLi = (h, i) => `
+      <li role="option" data-place="${i}">
+        <span class="place-ic"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg></span>
+        <span class="name">${esc(h.name)}<div class="sub">${esc([h.kind, h.addr].filter(Boolean).join(' · '))}</div></span>
+      </li>`;
+  let lastPlaces = [];
+  function search(raw) {
+    const q = raw.trim().toLowerCase();
+    el.clear.hidden = !q;
+    clearTimeout(placeTimer);
+    if (!q) { el.results.hidden = true; el.results.innerHTML = ''; return; }
+    const seq = ++searchSeq;
+    const sts = stationHits(q);
+    activeIdx = -1; lastPlaces = [];
+    el.results.innerHTML = (sts.length ? `<li class="hdr">Stations</li>${sts.map(stationLi).join('')}` : '')
+      + `<li class="hdr" id="places-hdr">Places &amp; addresses <span class="spin"></span></li>`;
     el.results.hidden = false;
+    placeTimer = setTimeout(async () => {
+      try {
+        const places = await placeHits(raw.trim());
+        if (seq !== searchSeq) return;
+        lastPlaces = places;
+        const hdr = $('places-hdr'); if (!hdr) return;
+        hdr.querySelector('.spin')?.remove();
+        hdr.insertAdjacentHTML('afterend', places.length ? places.map(placeLi).join('') : '<li class="sub empty">No places match</li>');
+        if (!sts.length && !places.length) el.results.innerHTML = '<li class="sub empty">Nothing found</li>';
+      } catch (e) {
+        if (seq !== searchSeq) return;
+        $('places-hdr')?.insertAdjacentHTML('afterend', '<li class="sub empty">Place search unavailable</li>');
+        $('places-hdr')?.querySelector('.spin')?.remove();
+      }
+    }, 250);
   }
   el.search.addEventListener('input', () => search(el.search.value));
   el.search.addEventListener('focus', () => search(el.search.value));
   el.search.addEventListener('keydown', (e) => {
-    const items = [...el.results.querySelectorAll('li[data-id]')];
+    const items = [...el.results.querySelectorAll('li[data-id], li[data-place]')];
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       activeIdx = (activeIdx + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
       items.forEach((li, i) => li.setAttribute('aria-selected', i === activeIdx));
     } else if (e.key === 'Enter') {
       const li = items[activeIdx] || items[0];
-      if (li) pick(li.dataset.id);
+      if (li) pickLi(li);
     } else if (e.key === 'Escape') { el.search.blur(); el.results.hidden = true; }
   });
-  el.results.addEventListener('click', (e) => { const li = e.target.closest('li[data-id]'); if (li) pick(li.dataset.id); });
+  el.results.addEventListener('click', (e) => { const li = e.target.closest('li[data-id], li[data-place]'); if (li) pickLi(li); });
+  function pickLi(li) {
+    if (li.dataset.id) pick(li.dataset.id);
+    else pickPlace(lastPlaces[+li.dataset.place]);
+  }
   function pick(id) {
     const s = stations.get(id);
     el.search.value = s.name; el.results.hidden = true; el.search.blur();
     setRoute(EMPTY); currentRoute = null;
     select(id, true);
+  }
+  function pickPlace(h) {
+    if (!h) return;
+    place = h;
+    el.search.value = h.name; el.results.hidden = true; el.search.blur();
+    setRoute(EMPTY); currentRoute = null;
+    if (selectedId) { const s = stations.get(selectedId); selectedId = null; paintPin(s); setSelectedLayer(); }
+    if (!placeMarker) {
+      const d = document.createElement('div'); d.className = 'place-pin';
+      d.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>';
+      placeMarker = new maplibregl.Marker({ element: d, anchor: 'bottom' });
+    }
+    placeMarker.setLngLat([h.lon, h.lat]).addTo(map);
+    map.flyTo({ center: [h.lon, h.lat], zoom: Math.max(map.getZoom(), 15.5), duration: 800 });
+    renderPlaceSheet(h);
+    openSheet();
+  }
+  function clearPlace() { place = null; placeMarker?.remove(); }
+  function renderPlaceSheet(h) {
+    const near = [...stations.values()].map((s) => ({ s, d: haversine(h, s) })).sort((a, b) => a.d - b.d).slice(0, 4);
+    if (!setSheet(`
+      <h2>${esc(h.name)}</h2>
+      <p class="sub">${esc([h.kind, h.addr].filter(Boolean).join(' · '))}${me ? ' · ' + fmtDist(haversine(me, h)) + ' from you' : ''}</p>
+      <div class="lbl">Nearest stations</div>
+      <ul class="near">${near.map(({ s, d }) => `
+        <li data-id="${s.id}">
+          <span class="station-pin ${level(s)}" style="width:30px;height:30px;font-size:12px;flex:none">${s.bikes}</span>
+          <span class="name">${esc(s.name)}<div class="sub">${fmtDist(d)} walk · ${s.bikes} bikes · ${s.docks} free docks</div></span>
+          <svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </li>`).join('')}</ul>`)) return;
+    el.sheetBody.querySelectorAll('.near li').forEach((li) => li.addEventListener('click', () => select(li.dataset.id, true)));
   }
   el.clear.addEventListener('click', () => { el.search.value = ''; search(''); el.search.focus(); });
   document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#search')) el.results.hidden = true; });
@@ -446,7 +716,10 @@
   el.fitAll.addEventListener('click', () => fitAll(true));
   el.menu.addEventListener('click', () => el.about.showModal());
   el.about.addEventListener('click', (e) => { if (e.target === el.about) el.about.close(); });
-  map.on('click', () => { if (!el.sheet.hidden && !currentRoute) closeSheet(); });
+  map.on('click', () => {
+    if (clickedFeature) { clickedFeature = false; return; }
+    if (!el.sheet.hidden && !currentRoute && !trip) closeSheet();
+  });
 
   let toastTimer;
   function toast(msg) {

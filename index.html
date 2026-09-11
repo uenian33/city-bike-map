@@ -43,6 +43,9 @@
       </button>
     </div>
     <div class="glass ctrl-group">
+      <button class="ctrl" id="layers" aria-label="Map view" title="Map view" aria-haspopup="menu">
+        <svg viewBox="0 0 24 24"><path d="M12 3 2 8.5 12 14l10-5.5L12 3Zm-7.7 8.1L2 12.5 12 18l10-5.5-2.3-1.4L12 15.4l-7.7-4.3ZM4.3 15.1 2 16.5 12 22l10-5.5-2.3-1.4L12 19.4l-7.7-4.3Z"/></svg>
+      </button>
       <button class="ctrl" id="fit-all" aria-label="Show all stations" title="Show all stations">
         <svg viewBox="0 0 24 24"><path d="M4 4h6v2H6v4H4V4Zm10 0h6v6h-2V6h-4V4ZM4 14h2v4h4v2H4v-6Zm14 0h2v6h-6v-2h4v-4Z"/></svg>
       </button>
@@ -51,6 +54,17 @@
       <button class="ctrl primary" id="locate" aria-label="My location" title="My location">
         <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 3h-1.07A8 8 0 0 0 13 4.07V3a1 1 0 1 0-2 0v1.07A8 8 0 0 0 4.07 11H3a1 1 0 1 0 0 2h1.07A8 8 0 0 0 11 19.93V21a1 1 0 1 0 2 0v-1.07A8 8 0 0 0 19.93 13H21a1 1 0 1 0 0-2Zm-9 7a6 6 0 1 1 0-12 6 6 0 0 1 0 12Z"/></svg>
       </button>
+    </div>
+  </div>
+
+  <!-- Map view picker -->
+  <div class="glass view-menu" id="view-menu" role="menu" hidden>
+    <div class="view-title">Map view</div>
+    <div class="view-grid">
+      <button class="view-opt" data-view="auto" role="menuitemradio"><span class="thumb thumb-std"></span>Standard</button>
+      <button class="view-opt" data-view="detailed" role="menuitemradio"><span class="thumb thumb-det"></span>Detailed</button>
+      <button class="view-opt" data-view="satellite" role="menuitemradio"><span class="thumb thumb-sat"></span>Satellite</button>
+      <button class="view-opt" data-view="dark" role="menuitemradio"><span class="thumb thumb-dark"></span>Dark</button>
     </div>
   </div>
 
@@ -76,9 +90,10 @@
     <ul>
       <li><b>Pin number</b> — bikes available right now.</li>
       <li><b>Pin colour</b> — green: plenty, amber: a few, grey: none.</li>
+      <li><b>Search</b> — station names, plus streets, addresses and places (e.g. "EMMA") via Photon / OpenStreetMap.</li>
       <li><b>Nearest bike</b> — walking route from you to the closest station with a bike, via Valhalla / OpenStreetMap.</li>
     </ul>
-    <p class="fine">Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, tiles by <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>. Not affiliated with HSL.</p>
+    <p class="fine">Places: <a href="https://photon.komoot.io" target="_blank" rel="noopener">Photon</a>. Satellite imagery © Esri. Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, tiles by <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>. Not affiliated with HSL.</p>
     <form method="dialog"><button class="btn">Done</button></form>
   </dialog>
 
