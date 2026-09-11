@@ -49,6 +49,7 @@
     container: el.map, style: styleUrl(),
     center: [HELSINKI[1], HELSINKI[0]], zoom: 12.5, minZoom: 9, maxZoom: 19,
     attributionControl: false, pitchWithRotate: false, dragRotate: false, touchPitch: false,
+    refreshExpiredTiles: false, fadeDuration: 150,
   });
   map.touchZoomRotate.disableRotation();
   map.addControl(new maplibregl.AttributionControl({
@@ -192,28 +193,32 @@
   function paintPin(s) {
     if (!s.el) return;
     const d = s.el;
-    d.className = `station-pin ${level(s)}${s.id === selectedId ? ' selected' : ''}`;
-    d.textContent = s.bikes;
-    d.title = s.name;
-    s.marker.getElement().style.zIndex = s.id === selectedId ? 1000 : level(s) === 'none' ? 0 : 1;
+    const cls = `station-pin ${level(s)}${s.id === selectedId ? ' selected' : ''}`;
+    if (d.className !== cls) d.className = cls;
+    const txt = String(s.bikes);
+    if (d.textContent !== txt) d.textContent = txt;
+    if (d.title !== s.name) d.title = s.name;
+    const z = s.id === selectedId ? '1000' : level(s) === 'none' ? '0' : '1';
+    const w = s.marker.getElement();
+    if (w.style.zIndex !== z) w.style.zIndex = z;
   }
   function esc(str) { return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
-  async function loadInfo() {
-    const r = await fetch(`${GBFS}/station_information.json`, { cache: 'no-store' });
-    if (!r.ok) throw new Error(`station_information ${r.status}`);
-    const { data } = await r.json();
+  // Station metadata rarely changes and status is only a minute stale, so both are cached in
+  // localStorage and painted immediately on load; the network then replaces them.
+  const CACHE_KEY = 'cbm-cache-v1';
+  function readCache() { try { return JSON.parse(localStorage.getItem(CACHE_KEY)) || null; } catch { return null; } }
+  function writeCache(info, status) { try { localStorage.setItem(CACHE_KEY, JSON.stringify({ info, status, at: Date.now() })); } catch {} }
+  function applyInfo(data) {
     for (const st of data.stations) {
+      const prev = stations.get(st.station_id);
       stations.set(st.station_id, {
         id: st.station_id, name: st.name, lat: st.lat, lon: st.lon, capacity: st.capacity ?? 0,
-        bikes: 0, docks: 0, renting: true, marker: null, el: null,
+        bikes: prev?.bikes ?? 0, docks: prev?.docks ?? 0, renting: prev?.renting ?? true, marker: prev?.marker ?? null, el: prev?.el ?? null,
       });
     }
   }
-  async function loadStatus() {
-    const r = await fetch(`${GBFS}/station_status.json`, { cache: 'no-store' });
-    if (!r.ok) throw new Error(`station_status ${r.status}`);
-    const { data, last_updated } = await r.json();
+  function applyStatus(data) {
     for (const st of data.stations) {
       const s = stations.get(st.station_id);
       if (!s) continue;
@@ -221,7 +226,21 @@
       s.docks = st.num_docks_available ?? 0;
       s.renting = st.is_installed !== false && st.is_renting !== false;
     }
-    return last_updated ? new Date(last_updated * 1000) : new Date();
+  }
+  const fetchJson = async (url) => {
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`${url.split('/').pop()} ${r.status}`);
+    return r.json();
+  };
+  let infoLoaded = false;
+  async function loadInfo() {
+    const j = await fetchJson(`${GBFS}/station_information.json`);
+    applyInfo(j.data); infoLoaded = true; return j;
+  }
+  async function loadStatus() {
+    const j = await fetchJson(`${GBFS}/station_status.json`);
+    applyStatus(j.data);
+    return j;
   }
   function renderStations() {
     stationGeo = {
@@ -262,22 +281,42 @@
     }
   }
   map.on('moveend', syncPins);
+  // Swap between GL circles and HTML pins the moment the zoom crosses the threshold, not at moveend.
+  let abovePinZoom = false;
+  map.on('zoom', () => { const a = map.getZoom() >= PIN_ZOOM; if (a !== abovePinZoom) { abovePinZoom = a; syncPins(); } });
   function totals() {
     let bikes = 0, n = 0;
     for (const s of stations.values()) { bikes += s.bikes; n++; }
     return { bikes, n };
   }
+  function paintStatus(at, stale = false) {
+    const { bikes, n } = totals();
+    el.chip.classList.remove('tick'); void el.chip.offsetWidth; el.chip.classList.add('tick');
+    el.statusText.textContent = `${n} stations · ${bikes.toLocaleString('en')} bikes · ${at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}${stale ? ' · updating…' : ''}`;
+    el.liveDot.classList.toggle('dot-stale', stale);
+  }
+  let cacheInfo = null, cacheStatus = null;
   async function refresh(initial = false) {
+    if (initial) {
+      const c = readCache();
+      if (c?.info && c?.status) {
+        applyInfo(c.info.data); applyStatus(c.status.data);
+        cacheInfo = c.info; cacheStatus = c.status;
+        renderStations();
+        paintStatus(new Date((c.status.last_updated || 0) * 1000 || c.at), true);
+        fitAll(false);
+      }
+    }
     try {
-      if (initial) await loadInfo();
-      const at = await loadStatus();
+      const [info, status] = await Promise.all([initial || !infoLoaded ? loadInfo() : null, loadStatus()]);
+      if (info) cacheInfo = info;
+      cacheStatus = status;
+      writeCache(cacheInfo, cacheStatus);
       renderStations();
-      const { bikes, n } = totals();
-      el.chip.classList.remove('tick'); void el.chip.offsetWidth; el.chip.classList.add('tick');
-      el.statusText.textContent = `${n} stations · ${bikes.toLocaleString('en')} bikes · ${at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      paintStatus(status.last_updated ? new Date(status.last_updated * 1000) : new Date());
       el.liveDot.classList.remove('dot-err'); el.liveDot.classList.add('dot-live');
       rerenderSheet();
-      if (initial) fitAll(false);
+      if (initial && !fitDone) fitAll(false);
     } catch (err) {
       console.error(err);
       el.statusText.textContent = initial ? 'Could not load stations' : 'Live update failed — retrying';
@@ -285,10 +324,12 @@
     }
   }
 
+  let fitDone = false;
   function fitAll(animate = true) {
     const b = new maplibregl.LngLatBounds();
     for (const s of stations.values()) b.extend([s.lon, s.lat]);
     if (b.isEmpty()) return;
+    fitDone = true;
     const wide = matchMedia('(min-width: 720px)').matches;
     const padding = wide ? { top: 90, left: 40, right: 80, bottom: 60 } : { top: 110, left: 24, right: 24, bottom: 110 };
     map.fitBounds(b, { padding, animate, maxZoom: 15, duration: animate ? 700 : 0 });
@@ -413,11 +454,13 @@
   let currentRoute = null; // {toId, distance, duration, steps}
   // Only touch the DOM when the content actually changed, so periodic refreshes don't
   // reset scroll position or interrupt a tap.
-  let lastSheetHtml = '';
-  function setSheet(html) {
+  let lastSheetHtml = '', lastSheetKey = '';
+  function setSheet(html, key = '') {
     if (html === lastSheetHtml) return false;
-    lastSheetHtml = html; el.sheetBody.innerHTML = html;
-    el.sheetBody.classList.remove('swap'); void el.sheetBody.offsetWidth; el.sheetBody.classList.add('swap');
+    const animate = key !== lastSheetKey || el.sheet.hidden;
+    lastSheetHtml = html; lastSheetKey = key; el.sheetBody.innerHTML = html;
+    el.sheetBody.classList.remove('swap');
+    if (animate) { void el.sheetBody.offsetWidth; el.sheetBody.classList.add('swap'); }
     return true;
   }
   function renderSheet(s) {
@@ -456,7 +499,7 @@
       </div>
       ${route && route.steps.length ? `<ol class="steps">${route.steps.map((st) =>
         `<li><span>${esc(st.text)}</span><span class="d">${st.distance ? fmtDist(st.distance) : ''}</span></li>`).join('')}</ol>` : ''}
-    `)) return;
+    `, `station:${s.id}:${route ? 'r' : ''}`)) return;
     $('dir-btn').addEventListener('click', () => routeTo(s.id));
     $('ride-btn').addEventListener('click', () => startTrip(s.id));
   }
@@ -528,13 +571,13 @@
       </div>
       ${r && r.steps.length ? `<ol class="steps">${r.steps.map((st) =>
         `<li><span>${esc(st.text)}</span><span class="d">${st.distance ? fmtDist(st.distance) : ''}</span></li>`).join('')}</ol>` : ''}
-    `)) return;
+    `, `trip:${trip.from}:${trip.to}:${r ? 'r' : ''}`)) return;
     $('trip-cancel').addEventListener('click', () => { cancelTrip(); closeSheet(); });
     $('trip-swap')?.addEventListener('click', () => { const f = trip.from; trip.from = trip.to; completeTrip(f); });
   }
 
   // ---------- Geolocation ----------
-  let watchId = null;
+  let watchId = null, lastMeRender = 0;
   function setMe(pos) {
     me = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy };
     const ll = [me.lon, me.lat];
@@ -545,7 +588,9 @@
     } else meMarker.setLngLat(ll);
     setAcc(me.acc > 25 ? circlePolygon(me.lat, me.lon, me.acc) : EMPTY);
     el.locate.classList.add('active');
-    rerenderSheet();
+    // GPS ticks every second; distances in the sheet only need an occasional refresh.
+    const now = performance.now();
+    if (now - lastMeRender > 3000) { lastMeRender = now; rerenderSheet(); }
   }
   function locate({ timeout = 12000 } = {}) {
     return new Promise((resolve, reject) => {
@@ -759,7 +804,7 @@
         $('places-hdr')?.insertAdjacentHTML('afterend', '<li class="sub empty">Place search unavailable</li>');
         $('places-hdr')?.querySelector('.spin')?.remove();
       }
-    }, 250);
+    }, 180);
   }
   el.search.addEventListener('input', () => search(el.search.value));
   el.search.addEventListener('focus', () => search(el.search.value));
@@ -820,7 +865,7 @@
           <span class="station-pin ${level(s)}" style="width:30px;height:30px;font-size:12px;flex:none">${s.bikes}</span>
           <span class="name">${esc(s.name)}<div class="sub">${fmtDist(d)} walk · ${s.bikes} bikes · ${s.docks} free docks</div></span>
           <svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        </li>`).join('')}</ul>`)) return;
+        </li>`).join('')}</ul>`, `place:${h.key}`)) return;
     el.sheetBody.querySelectorAll('.near li').forEach((li) => li.addEventListener('click', () => select(li.dataset.id, true)));
     $('journey-btn').addEventListener('click', () => planJourney(h));
   }
@@ -904,7 +949,7 @@
         ${legs ? '<button class="btn" id="journey-reroute">Re-plan</button>' : ''}
         <button class="btn" id="journey-done">Done</button>
       </div>
-    `)) return;
+    `, `journey:${h.key}:${legs ? 'r' : ''}`)) return;
     $('journey-done').addEventListener('click', closeSheet);
     $('journey-reroute')?.addEventListener('click', () => planJourney(h));
     el.sheetBody.querySelectorAll('.leg').forEach((li, i) => {

@@ -36,6 +36,18 @@ with live bike counts, your position, and a walking route to the nearest bike.
   you drag between collapsed / half / full and fling down to dismiss.
   Follows the system light/dark theme.
 
+## Performance notes
+
+- Station metadata and the last status are cached in `localStorage`, so a
+  revisit paints all pins before the network answers (the chip says
+  "updating…" until fresh data lands). Both feeds load in parallel and are
+  `preload`ed from the HTML head.
+- Zoomed out, stations are GPU layers; zoomed in, only stations inside the
+  viewport are HTML pins. Pin repaints are diffed, and the sheet only
+  re-renders (and only animates) when its subject changes.
+- Glass surfaces use a 16 px blur; the opaque FAB has none; the live dot
+  pulses with a composited transform rather than an animated shadow.
+
 ## Stack
 
 No build step — three static files.

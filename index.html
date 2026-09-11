@@ -8,7 +8,14 @@
   <meta name="description" content="Live map of Helsinki & Espoo city bike stations: bikes available, your location, and a walking route to the nearest bike.">
   <title>Helsinki City Bikes</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23f2b705'/%3E%3Ctext x='32' y='42' font-size='30' text-anchor='middle'%3E%F0%9F%9A%B2%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css" crossorigin="">
+  <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
+  <link rel="preconnect" href="https://gbfs.theta.fifteen.eu" crossorigin>
+  <link rel="dns-prefetch" href="https://valhalla1.openstreetmap.de">
+  <link rel="dns-prefetch" href="https://photon.komoot.io">
+  <link rel="preload" href="https://gbfs.theta.fifteen.eu/gbfs/2.2/helsinki/en/station_information.json" as="fetch" crossorigin>
+  <link rel="preload" href="https://gbfs.theta.fifteen.eu/gbfs/2.2/helsinki/en/station_status.json" as="fetch" crossorigin>
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/dist/maplibre-gl.js" as="script" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/dist/maplibre-gl.css" crossorigin="">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -97,7 +104,7 @@
     <form method="dialog"><button class="btn">Done</button></form>
   </dialog>
 
-  <script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js" crossorigin=""></script>
-  <script src="app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/dist/maplibre-gl.js" crossorigin="" defer></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
