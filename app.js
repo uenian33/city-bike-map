@@ -259,6 +259,7 @@
   function select(id, fly = true) {
     if (trip && !trip.to && id !== trip.from) { completeTrip(id); return; }
     if (trip) trip = null; // picking a station outside the planner ends it
+    if (journey) { journey = null; setRoute(EMPTY); }
     const prev = selectedId ? stations.get(selectedId) : null;
     selectedId = id;
     const s = stations.get(id);
@@ -269,7 +270,7 @@
     renderSheet(s);
     openSheet();
   }
-  function openSheet() { el.sheet.hidden = false; el.sheet.classList.remove('collapsed'); el.chip.classList.add('pushed'); }
+  function openSheet() { el.sheet.hidden = false; applySnap('half'); el.chip.classList.add('pushed'); }
   function closeSheet() {
     el.sheet.hidden = true; el.chip.classList.remove('pushed');
     const s = selectedId ? stations.get(selectedId) : null;
@@ -278,22 +279,59 @@
     setSelectedLayer();
     setRoute(EMPTY);
     currentRoute = null;
-    trip = null;
+    trip = null; journey = null;
     clearPlace();
   }
   el.sheetClose.addEventListener('click', closeSheet);
-  // Bottom sheet: tap or swipe the grabber to collapse / expand (mobile layout).
+  // Bottom sheet (phone layout): drag the handle to resize; snap to collapsed / half / full,
+  // or dismiss by flinging it down. Tap toggles collapsed <-> half.
   const grabber = $('grabber');
-  let dragY = null;
-  grabber.addEventListener('click', () => el.sheet.classList.toggle('collapsed'));
-  grabber.addEventListener('touchstart', (e) => { dragY = e.touches[0].clientY; }, { passive: true });
-  grabber.addEventListener('touchmove', (e) => {
-    if (dragY == null) return;
-    const dy = e.touches[0].clientY - dragY;
-    if (dy > 40) { el.sheet.classList.add('collapsed'); dragY = null; }
-    else if (dy < -40) { el.sheet.classList.remove('collapsed'); dragY = null; }
-  }, { passive: true });
-  grabber.addEventListener('touchend', () => { dragY = null; });
+  const SNAP = { collapsed: 150 };
+  const snapHeights = () => ({ collapsed: SNAP.collapsed, half: Math.round(innerHeight * 0.5), full: Math.round(innerHeight * 0.9) });
+  const isPhone = () => !matchMedia('(min-width: 720px)').matches;
+  let drag = null; // { y0, h0, t0, moved }
+  function sheetHeight() { return el.sheet.getBoundingClientRect().height; }
+  function applySnap(name) {
+    el.sheet.classList.remove('collapsed', 'full', 'dragging');
+    if (name !== 'half') el.sheet.classList.add(name);
+    el.sheet.style.maxHeight = ''; el.sheet.style.transform = '';
+  }
+  grabber.addEventListener('pointerdown', (e) => {
+    if (!isPhone()) return;
+    drag = { y0: e.clientY, h0: sheetHeight(), t0: performance.now(), moved: false, id: e.pointerId };
+    grabber.setPointerCapture(e.pointerId);
+    el.sheet.classList.add('dragging');
+  });
+  grabber.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dy = e.clientY - drag.y0;
+    if (Math.abs(dy) > 3) drag.moved = true;
+    const h = drag.h0 - dy;
+    const { full } = snapHeights();
+    if (h >= 80) { el.sheet.style.maxHeight = `${Math.min(h, full)}px`; el.sheet.style.transform = ''; }
+    else { el.sheet.style.maxHeight = '80px'; el.sheet.style.transform = `translateY(${80 - h}px)`; }
+  });
+  const endDrag = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dy = e.clientY - drag.y0, dt = Math.max(1, performance.now() - drag.t0), v = dy / dt; // px per ms, + = down
+    const h = drag.h0 - dy, snaps = snapHeights();
+    const wasCollapsed = el.sheet.classList.contains('collapsed');
+    drag = null;
+    if (Math.abs(dy) <= 3) { // tap
+      applySnap(wasCollapsed ? 'half' : 'collapsed'); return;
+    }
+    if ((v > 0.6 && h < snaps.half) || h < 90 || (wasCollapsed && dy > 40)) { applySnap('half'); closeSheet(); return; }
+    let target = 'half';
+    if (v > 0.4) target = h < snaps.half ? 'collapsed' : 'half';
+    else if (v < -0.4) target = h > snaps.half ? 'full' : 'half';
+    else {
+      const d = Object.entries(snaps).map(([k, hh]) => [Math.abs(hh - h), k]).sort((a, b) => a[0] - b[0]);
+      target = d[0][1];
+    }
+    applySnap(target);
+  };
+  grabber.addEventListener('pointerup', endDrag);
+  grabber.addEventListener('pointercancel', endDrag);
 
   const fmtDist = (m) => m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
   const fmtDur = (s) => { const m = Math.max(1, Math.round(s / 60)); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`; };
@@ -355,7 +393,8 @@
 
   function rerenderSheet() {
     if (el.sheet.hidden) return;
-    if (trip) renderTripSheet();
+    if (journey) renderJourneySheet();
+    else if (trip) renderTripSheet();
     else if (place && !selectedId) renderPlaceSheet(place);
     else if (selectedId) renderSheet(stations.get(selectedId));
   }
@@ -698,6 +737,12 @@
     if (!setSheet(`
       <h2>${esc(h.name)}</h2>
       <p class="sub">${esc([h.kind, h.addr].filter(Boolean).join(' · '))}${me ? ' · ' + fmtDist(haversine(me, h)) + ' from you' : ''}</p>
+      <div class="actions" style="margin-bottom:14px">
+        <button class="btn primary" id="journey-btn">
+          <svg viewBox="0 0 24 24"><path d="M5 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM19 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM12 16.5V12h3.5v-1.5H12.4l-2-3.3 2.3-2.2 1.9 2.3H17V5.8h-1.7L13.6 3.7a1.5 1.5 0 0 0-2.2-.2L8.3 6.4a1.5 1.5 0 0 0-.1 2l2.3 3.6v4.5H12Z"/></svg>
+          Get there by city bike
+        </button>
+      </div>
       <div class="lbl">Nearest stations</div>
       <ul class="near">${near.map(({ s, d }) => `
         <li data-id="${s.id}">
@@ -706,6 +751,95 @@
           <svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </li>`).join('')}</ul>`)) return;
     el.sheetBody.querySelectorAll('.near li').forEach((li) => li.addEventListener('click', () => select(li.dataset.id, true)));
+    $('journey-btn').addEventListener('click', () => planJourney(h));
+  }
+
+  // ---------- Door-to-door journey: walk -> nearest bike -> ride -> nearest dock -> walk ----------
+  let journey = null; // { place, a, b, legs: [{mode, from, to, route}] | null, error }
+  function nearestWithDocks(to) {
+    let best = null, bestD = Infinity;
+    for (const s of stations.values()) {
+      if (!s.renting || s.docks < 1) continue;
+      const d = haversine(to, s);
+      if (d < bestD) { bestD = d; best = s; }
+    }
+    return best;
+  }
+  async function planJourney(h) {
+    if (routing) return;
+    routing = true; el.nearest.classList.add('busy');
+    try {
+      if (!me) await locate();
+      const a = nearestWithBikes(me);
+      const b = nearestWithDocks(h);
+      if (!a || !b) throw new Error('No usable station found right now');
+      journey = { place: h, a, b, legs: null, error: null };
+      setRoute(EMPTY);
+      renderJourneySheet(); openSheet();
+      const seq = journey;
+      const legs = a.id === b.id || haversine(me, h) < haversine(me, a) + haversine(b, h)
+        // Riding would be a detour: just walk.
+        ? [{ mode: 'walk', from: me, to: h, label: 'Walk to destination' }]
+        : [
+          { mode: 'walk', from: me, to: a, label: `Walk to ${a.name}`, station: a },
+          { mode: 'bike', from: a, to: b, label: `Ride to ${b.name}`, station: b },
+          { mode: 'walk', from: b, to: h, label: 'Walk to destination' },
+        ];
+      const routes = await Promise.all(legs.map((l) => fetchRoute(l.from, l.to, l.mode)));
+      if (journey !== seq) return;
+      legs.forEach((l, i) => { l.route = routes[i]; });
+      journey.legs = legs;
+      setRoute({ type: 'FeatureCollection', features: legs.map((l) => ({
+        type: 'Feature', properties: { mode: l.mode }, geometry: { type: 'LineString', coordinates: l.route.coords } })) });
+      const bounds = new maplibregl.LngLatBounds([me.lon, me.lat], [me.lon, me.lat]);
+      for (const l of legs) for (const c of l.route.coords) bounds.extend(c);
+      bounds.extend([h.lon, h.lat]);
+      const wide = matchMedia('(min-width: 720px)').matches;
+      map.fitBounds(bounds, { padding: wide ? { top: 90, left: 470, right: 80, bottom: 60 } : { top: 100, left: 30, right: 30, bottom: Math.round(innerHeight * 0.5) + 30 }, maxZoom: 16, duration: 800 });
+      renderJourneySheet();
+    } catch (e) {
+      toast(e.message);
+      if (journey) { journey.error = e.message; renderJourneySheet(); }
+    } finally { routing = false; el.nearest.classList.remove('busy'); }
+  }
+  function renderJourneySheet() {
+    if (!journey) return;
+    const { place: h, legs, error } = journey;
+    const total = legs ? legs.reduce((t, l) => t + l.route.duration, 0) : 0;
+    const ride = legs?.find((l) => l.mode === 'bike');
+    const rideMin = ride ? ride.route.duration / 60 : 0;
+    const walkSvg = '<svg viewBox="0 0 24 24"><path d="M13.5 5.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM9.8 8.9 7 22h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3a7.2 7.2 0 0 0 5.5 2.5v-2a5.2 5.2 0 0 1-4.5-2.5l-1-1.6a2 2 0 0 0-1.7-.9 2 2 0 0 0-.7.1L6 9.3V14h2v-3.4l1.8-.7Z"/></svg>';
+    const bikeSvg = '<svg viewBox="0 0 24 24"><path d="M5 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM19 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM12 16.5V12h3.5v-1.5H12.4l-2-3.3 2.3-2.2 1.9 2.3H17V5.8h-1.7L13.6 3.7a1.5 1.5 0 0 0-2.2-.2L8.3 6.4a1.5 1.5 0 0 0-.1 2l2.3 3.6v4.5H12Z"/></svg>';
+    if (!setSheet(`
+      <h2>To ${esc(h.name)}</h2>
+      <p class="sub">${esc([h.kind, h.addr].filter(Boolean).join(' · '))}</p>
+      ${error ? `<p class="err">${esc(error)}</p>` : !legs
+        ? '<p class="sub"><span class="spin" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>Planning walk → ride → walk…</p>'
+        : `
+      <div class="route-summary">
+        <span class="big">${fmtDur(total)}</span>
+        <span class="dim">${fmtDist(legs.reduce((t, l) => t + l.route.distance, 0))} · door to door</span>
+      </div>
+      ${ride && rideMin > FREE_RIDE_MIN ? `<p class="note warn">The ride is over ${FREE_RIDE_MIN} min — HSL charges extra beyond the free ${FREE_RIDE_MIN} min.</p>` : ''}
+      <ol class="legs">${legs.map((l) => `
+        <li class="leg ${l.mode}">
+          <span class="leg-ic">${l.mode === 'bike' ? bikeSvg : walkSvg}</span>
+          <div class="leg-body">
+            <div class="leg-title">${esc(l.label)}</div>
+            <div class="sub">${fmtDur(l.route.duration)} · ${fmtDist(l.route.distance)}${l.station ? ` · ${l.mode === 'walk' ? `${l.station.bikes} bikes available` : `${l.station.docks} free docks`}` : ''}</div>
+          </div>
+        </li>`).join('')}</ol>`}
+      <div class="actions">
+        ${legs ? '<button class="btn" id="journey-reroute">Re-plan</button>' : ''}
+        <button class="btn" id="journey-done">Done</button>
+      </div>
+    `)) return;
+    $('journey-done').addEventListener('click', closeSheet);
+    $('journey-reroute')?.addEventListener('click', () => planJourney(h));
+    el.sheetBody.querySelectorAll('.leg').forEach((li, i) => {
+      const st = legs?.[i]?.station;
+      if (st) { li.style.cursor = 'pointer'; li.addEventListener('click', () => select(st.id, true)); }
+    });
   }
   el.clear.addEventListener('click', () => { el.search.value = ''; search(''); el.search.focus(); });
   document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#search')) el.results.hidden = true; });

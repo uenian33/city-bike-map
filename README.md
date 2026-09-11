@@ -18,6 +18,11 @@ with live bike counts, your position, and a walking route to the nearest bike.
 - **Search** matches station names and, via Photon (OpenStreetMap), streets,
   addresses and places — typing "emma" suggests EMMA, the Espoo Museum of
   Modern Art. Picking a place drops a pin and lists the nearest stations.
+- **Get there by city bike** plans a door-to-door journey to a searched
+  destination: walk to the nearest station with a bike, ride to the station
+  nearest the destination that has a free dock, walk the rest — three routed
+  legs with a total time and a 30-minute warning. If riding would be a detour
+  it just gives the walking route.
 - Tap any pin (or search by name) for bikes, free docks, capacity, distance,
   directions, and an "Open in Maps" hand-off (Apple Maps on Apple devices,
   Google Maps elsewhere).
@@ -27,7 +32,8 @@ with live bike counts, your position, and a walking route to the nearest bike.
 - **Map view** switcher: Standard (follows light/dark), Detailed, Satellite
   (Esri World Imagery), Dark. Remembered across visits.
 - Refreshes every 60 s and whenever the tab becomes visible again.
-- Responsive: side panel on desktop and tablet, bottom sheet on phones.
+- Responsive: side panel on desktop and tablet, bottom sheet on phones that
+  you drag between collapsed / half / full and fling down to dismiss.
   Follows the system light/dark theme.
 
 ## Stack
