@@ -76,6 +76,7 @@
         'circle-stroke-color': LEVEL_COLOR,
         'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, 1.5, 12, 2.5],
         'circle-opacity': 0.95,
+        'circle-stroke-color-transition': { duration: 400 },
       },
     });
     map.addLayer({
@@ -84,6 +85,7 @@
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 8, 11, 12, 13, 17, PIN_ZOOM, 19],
         'circle-color': '#0a84ff', 'circle-opacity': 0.25,
+        'circle-radius-transition': { duration: 300 },
       },
     }, 'st-circle');
     map.addLayer({
@@ -119,16 +121,49 @@
     try { localStorage.setItem('cbm-view', v); } catch {}
     map.setStyle(styleUrl(), { diff: false });
     document.querySelectorAll('.view-opt').forEach((b) => b.classList.toggle('active', b.dataset.view === v));
-    $('view-menu').hidden = true;
+    setOpen($('view-menu'), false);
   }
   dark.addEventListener('change', () => { if (view === 'auto') map.setStyle(styleUrl(), { diff: false }); });
-  $('layers').addEventListener('click', (e) => { e.stopPropagation(); const m = $('view-menu'); m.hidden = !m.hidden; });
+  $('layers').addEventListener('click', (e) => { e.stopPropagation(); const m = $('view-menu'); setOpen(m, !m.classList.contains('open')); });
   document.querySelectorAll('.view-opt').forEach((b) => {
     b.classList.toggle('active', b.dataset.view === view);
     b.addEventListener('click', () => setView(b.dataset.view));
   });
-  document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#view-menu, #layers')) $('view-menu').hidden = true; });
-  const setRoute = (geo) => { routeGeo = geo; map.getSource('route')?.setData(geo); };
+  document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#view-menu, #layers')) setOpen($('view-menu'), false); });
+  const setRouteNow = (geo) => { routeGeo = geo; map.getSource('route')?.setData(geo); };
+  // Routes "draw themselves" onto the map: every line grows from its start over ~700 ms.
+  let routeAnim = 0;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  function setRoute(geo) {
+    cancelAnimationFrame(routeAnim);
+    const feats = geo.type === 'FeatureCollection' ? geo.features : geo.type === 'Feature' ? [geo] : [];
+    if (!feats.length || reduceMotion.matches) return setRouteNow(geo);
+    const total = feats.reduce((n, f) => n + f.geometry.coordinates.length, 0);
+    const dur = Math.min(1100, 450 + total * 2), t0 = performance.now();
+    const ease = (t) => 1 - Math.pow(1 - t, 3);
+    const frame = (now) => {
+      const k = ease(Math.min(1, (now - t0) / dur));
+      setRouteNow({ type: 'FeatureCollection', features: feats.map((f) => {
+        const c = f.geometry.coordinates, n = Math.max(2, Math.ceil(c.length * k));
+        return { ...f, geometry: { type: 'LineString', coordinates: c.slice(0, n) } };
+      }) });
+      if (k < 1) routeAnim = requestAnimationFrame(frame); else setRouteNow(geo);
+    };
+    routeAnim = requestAnimationFrame(frame);
+  }
+  // Popovers (search results, view menu) animate in and out via a class; `hidden` is set
+  // only after the exit transition so the element can actually animate.
+  function setOpen(node, open) {
+    if (open) {
+      node.hidden = false;
+      requestAnimationFrame(() => node.classList.add('open'));
+    } else if (node.classList.contains('open')) {
+      node.classList.remove('open');
+      const done = () => { if (!node.classList.contains('open')) node.hidden = true; };
+      node.addEventListener('transitionend', done, { once: true });
+      setTimeout(done, 260);
+    } else node.hidden = true;
+  }
   const setAcc = (geo) => { accGeo = geo; map.getSource('me-acc')?.setData(geo); };
   let clickedFeature = false;
   const setSelectedLayer = () => { if (map.getLayer('st-selected')) map.setFilter('st-selected', ['==', ['get', 'id'], selectedId ?? '']); };
@@ -218,7 +253,10 @@
           wrap.addEventListener('click', (e) => { e.stopPropagation(); select(s.id, false); });
           s.marker = new maplibregl.Marker({ element: wrap, anchor: 'bottom' }).setLngLat([s.lon, s.lat]);
         }
-        if (!visible.has(s.id)) { s.marker.addTo(map); visible.add(s.id); }
+        if (!visible.has(s.id)) {
+          s.marker.addTo(map); visible.add(s.id);
+          const w = s.marker.getElement(); w.classList.remove('pop'); void w.offsetWidth; w.classList.add('pop');
+        }
         paintPin(s);
       } else if (visible.has(s.id)) { s.marker.remove(); visible.delete(s.id); }
     }
@@ -235,6 +273,7 @@
       const at = await loadStatus();
       renderStations();
       const { bikes, n } = totals();
+      el.chip.classList.remove('tick'); void el.chip.offsetWidth; el.chip.classList.add('tick');
       el.statusText.textContent = `${n} stations · ${bikes.toLocaleString('en')} bikes · ${at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
       el.liveDot.classList.remove('dot-err'); el.liveDot.classList.add('dot-live');
       rerenderSheet();
@@ -270,9 +309,19 @@
     renderSheet(s);
     openSheet();
   }
-  function openSheet() { el.sheet.hidden = false; applySnap('half'); el.chip.classList.add('pushed'); }
+  let sheetCloseTimer = null;
+  function openSheet() {
+    clearTimeout(sheetCloseTimer);
+    el.sheet.classList.remove('closing');
+    if (el.sheet.hidden) { el.sheet.hidden = false; el.sheet.classList.add('opening'); setTimeout(() => el.sheet.classList.remove('opening'), 400); }
+    applySnap('half'); el.chip.classList.add('pushed');
+  }
   function closeSheet() {
-    el.sheet.hidden = true; el.chip.classList.remove('pushed');
+    if (!el.sheet.hidden) {
+      el.sheet.classList.add('closing');
+      sheetCloseTimer = setTimeout(() => { el.sheet.hidden = true; el.sheet.classList.remove('closing'); }, 260);
+    }
+    el.chip.classList.remove('pushed');
     const s = selectedId ? stations.get(selectedId) : null;
     selectedId = null;
     if (s) paintPin(s);
@@ -348,7 +397,9 @@
   let lastSheetHtml = '';
   function setSheet(html) {
     if (html === lastSheetHtml) return false;
-    lastSheetHtml = html; el.sheetBody.innerHTML = html; return true;
+    lastSheetHtml = html; el.sheetBody.innerHTML = html;
+    el.sheetBody.classList.remove('swap'); void el.sheetBody.offsetWidth; el.sheetBody.classList.add('swap');
+    return true;
   }
   function renderSheet(s) {
     if (!s) return;
@@ -392,7 +443,7 @@
   }
 
   function rerenderSheet() {
-    if (el.sheet.hidden) return;
+    if (el.sheet.hidden || el.sheet.classList.contains('closing')) return;
     if (journey) renderJourneySheet();
     else if (trip) renderTripSheet();
     else if (place && !selectedId) renderPlaceSheet(place);
@@ -469,8 +520,8 @@
     me = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy };
     const ll = [me.lon, me.lat];
     if (!meMarker) {
-      const d = document.createElement('div'); d.className = 'me-dot';
-      meMarker = new maplibregl.Marker({ element: d, anchor: 'center' }).setLngLat(ll).addTo(map);
+      const w = document.createElement('div'); w.className = 'me-wrap'; w.innerHTML = '<div class="me-dot"></div>';
+      meMarker = new maplibregl.Marker({ element: w, anchor: 'center' }).setLngLat(ll).addTo(map);
       meMarker.getElement().style.zIndex = 2000;
     } else meMarker.setLngLat(ll);
     setAcc(me.acc > 25 ? circlePolygon(me.lat, me.lon, me.acc) : EMPTY);
@@ -668,13 +719,13 @@
     const q = raw.trim().toLowerCase();
     el.clear.hidden = !q;
     clearTimeout(placeTimer);
-    if (!q) { el.results.hidden = true; el.results.innerHTML = ''; return; }
+    if (!q) { setOpen(el.results, false); el.results.innerHTML = ''; return; }
     const seq = ++searchSeq;
     const sts = stationHits(q);
     activeIdx = -1; lastPlaces = [];
     el.results.innerHTML = (sts.length ? `<li class="hdr">Stations</li>${sts.map(stationLi).join('')}` : '')
       + `<li class="hdr" id="places-hdr">Places &amp; addresses <span class="spin"></span></li>`;
-    el.results.hidden = false;
+    setOpen(el.results, true);
     placeTimer = setTimeout(async () => {
       try {
         const places = await placeHits(raw.trim());
@@ -702,7 +753,7 @@
     } else if (e.key === 'Enter') {
       const li = items[activeIdx] || items[0];
       if (li) pickLi(li);
-    } else if (e.key === 'Escape') { el.search.blur(); el.results.hidden = true; }
+    } else if (e.key === 'Escape') { el.search.blur(); setOpen(el.results, false); }
   });
   el.results.addEventListener('click', (e) => { const li = e.target.closest('li[data-id], li[data-place]'); if (li) pickLi(li); });
   function pickLi(li) {
@@ -711,22 +762,23 @@
   }
   function pick(id) {
     const s = stations.get(id);
-    el.search.value = s.name; el.results.hidden = true; el.search.blur();
+    el.search.value = s.name; setOpen(el.results, false); el.search.blur();
     setRoute(EMPTY); currentRoute = null;
     select(id, true);
   }
   function pickPlace(h) {
     if (!h) return;
     place = h;
-    el.search.value = h.name; el.results.hidden = true; el.search.blur();
+    el.search.value = h.name; setOpen(el.results, false); el.search.blur();
     setRoute(EMPTY); currentRoute = null;
     if (selectedId) { const s = stations.get(selectedId); selectedId = null; paintPin(s); setSelectedLayer(); }
     if (!placeMarker) {
-      const d = document.createElement('div'); d.className = 'place-pin';
-      d.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>';
+      const d = document.createElement('div'); d.className = 'place-wrap';
+      d.innerHTML = '<div class="place-pin"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg></div>';
       placeMarker = new maplibregl.Marker({ element: d, anchor: 'bottom' });
     }
     placeMarker.setLngLat([h.lon, h.lat]).addTo(map);
+    const pp = placeMarker.getElement().firstChild; pp.style.animation = 'none'; void pp.offsetWidth; pp.style.animation = '';
     map.flyTo({ center: [h.lon, h.lat], zoom: Math.max(map.getZoom(), 15.5), duration: 800 });
     renderPlaceSheet(h);
     openSheet();
@@ -842,7 +894,7 @@
     });
   }
   el.clear.addEventListener('click', () => { el.search.value = ''; search(''); el.search.focus(); });
-  document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#search')) el.results.hidden = true; });
+  document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#search')) setOpen(el.results, false); });
 
   // ---------- Misc controls ----------
   el.zoomIn.addEventListener('click', () => map.zoomIn());
@@ -852,7 +904,7 @@
   el.about.addEventListener('click', (e) => { if (e.target === el.about) el.about.close(); });
   map.on('click', () => {
     if (clickedFeature) { clickedFeature = false; return; }
-    if (!el.sheet.hidden && !currentRoute && !trip) closeSheet();
+    if (!el.sheet.hidden && !el.sheet.classList.contains('closing') && !currentRoute && !trip) closeSheet();
   });
 
   let toastTimer;
@@ -860,7 +912,8 @@
     document.querySelector('.toast')?.remove();
     const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
     document.body.appendChild(t);
-    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), 4000);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 300); }, 4000);
   }
 
   // ---------- Boot ----------
