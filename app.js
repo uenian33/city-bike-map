@@ -529,7 +529,7 @@
       ${route && route.steps.length ? `<ol class="steps">${route.steps.map((st) =>
         `<li><span>${esc(st.text)}</span><span class="d">${st.distance ? fmtDist(st.distance) : ''}</span></li>`).join('')}</ol>` : ''}
     `, `station:${s.id}:${route ? 'r' : ''}`)) return;
-    $('dir-btn').addEventListener('click', () => routeTo(s.id));
+    $('dir-btn').addEventListener('click', () => planJourney(s, { station: true }));
     $('ride-btn').addEventListener('click', () => startTrip(s.id));
   }
 
@@ -910,25 +910,28 @@
     }
     return best;
   }
-  async function planJourney(h) {
+  // `h` is a searched place, or (with station: true) a station that is itself the destination:
+  // walk to the nearest station with a bike, ride to `h`, no final walk.
+  async function planJourney(h, { station = false } = {}) {
     if (routing) return;
     routing = true; el.nearest.classList.add('busy');
     try {
       if (!me) await locate();
       const a = nearestWithBikes(me);
-      const b = nearestWithDocks(h);
+      const b = station ? h : nearestWithDocks(h);
       if (!a || !b) throw new Error('No usable station found right now');
-      journey = { place: h, a, b, legs: null, error: null };
+      journey = { place: h, a, b, legs: null, error: null, station };
       setRoute(EMPTY);
       renderJourneySheet(); openSheet();
       const seq = journey;
-      const legs = a.id === b.id || haversine(me, h) < haversine(me, a) + haversine(b, h)
+      const detour = a.id === b.id || haversine(me, h) < haversine(me, a) + haversine(b, h);
+      const legs = detour
         // Riding would be a detour: just walk.
-        ? [{ mode: 'walk', from: me, to: h, label: 'Walk to destination' }]
+        ? [{ mode: 'walk', from: me, to: h, label: station ? `Walk to ${h.name}` : 'Walk to destination', station: station ? h : undefined }]
         : [
           { mode: 'walk', from: me, to: a, label: `Walk to ${a.name}`, station: a },
           { mode: 'bike', from: a, to: b, label: `Ride to ${b.name}`, station: b },
-          { mode: 'walk', from: b, to: h, label: 'Walk to destination' },
+          ...(station ? [] : [{ mode: 'walk', from: b, to: h, label: 'Walk to destination' }]),
         ];
       const routes = await Promise.all(legs.map((l) => fetchRoute(l.from, l.to, l.mode)));
       if (journey !== seq) return;
@@ -949,7 +952,7 @@
   }
   function renderJourneySheet() {
     if (!journey) return;
-    const { place: h, legs, error } = journey;
+    const { place: h, legs, error, station } = journey;
     const total = legs ? legs.reduce((t, l) => t + l.route.duration, 0) : 0;
     const ride = legs?.find((l) => l.mode === 'bike');
     const rideMin = ride ? ride.route.duration / 60 : 0;
@@ -957,7 +960,7 @@
     const bikeSvg = '<svg viewBox="0 0 24 24"><path d="M5 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM19 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM12 16.5V12h3.5v-1.5H12.4l-2-3.3 2.3-2.2 1.9 2.3H17V5.8h-1.7L13.6 3.7a1.5 1.5 0 0 0-2.2-.2L8.3 6.4a1.5 1.5 0 0 0-.1 2l2.3 3.6v4.5H12Z"/></svg>';
     if (!setSheet(`
       <h2>To ${esc(h.name)}</h2>
-      <p class="sub">${esc([h.kind, h.addr].filter(Boolean).join(' · '))}</p>
+      <p class="sub">${station ? `City bike station · ${h.bikes} bikes · ${h.docks} free docks` : esc([h.kind, h.addr].filter(Boolean).join(' · '))}</p>
       ${error ? `<p class="err">${esc(error)}</p>` : !legs
         ? '<p class="sub"><span class="spin" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>Planning walk → ride → walk…</p>'
         : `
@@ -966,6 +969,7 @@
         <span class="dim">${fmtDist(legs.reduce((t, l) => t + l.route.distance, 0))} · door to door</span>
       </div>
       ${ride && rideMin > FREE_RIDE_MIN ? `<p class="note warn">The ride is over ${FREE_RIDE_MIN} min — HSL charges extra beyond the free ${FREE_RIDE_MIN} min.</p>` : ''}
+      ${station && ride && h.docks === 0 ? '<p class="note warn">No free docks at this station right now — check again before you arrive.</p>' : ''}
       <ol class="legs">${legs.map((l) => `
         <li class="leg ${l.mode}">
           <span class="leg-ic">${l.mode === 'bike' ? bikeSvg : walkSvg}</span>
@@ -978,9 +982,9 @@
         ${legs ? '<button class="btn" id="journey-reroute">Re-plan</button>' : ''}
         <button class="btn" id="journey-done">Done</button>
       </div>
-    `, `journey:${h.key}:${legs ? 'r' : ''}`)) return;
+    `, `journey:${h.key ?? h.id}:${legs ? 'r' : ''}`)) return;
     $('journey-done').addEventListener('click', closeSheet);
-    $('journey-reroute')?.addEventListener('click', () => planJourney(h));
+    $('journey-reroute')?.addEventListener('click', () => planJourney(h, { station }));
     el.sheetBody.querySelectorAll('.leg').forEach((li, i) => {
       const st = legs?.[i]?.station;
       if (st) { li.style.cursor = 'pointer'; li.addEventListener('click', () => select(st.id, true)); }

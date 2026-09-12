@@ -23,9 +23,10 @@ with live bike counts, your position, and a walking route to the nearest bike.
   nearest the destination that has a free dock, walk the rest — three routed
   legs with a total time and a 30-minute warning. If riding would be a detour
   it just gives the walking route.
-- Tap any pin (or search by name) for bikes, free docks, capacity, distance,
-  directions, and an "Open in Maps" hand-off (Apple Maps on Apple devices,
-  Google Maps elsewhere).
+- Tap any pin (or search by name) for bikes, free docks, capacity and
+  distance. **Directions** plans a city-bike journey to that station: walk to
+  the nearest station with a bike, ride to the tapped one (warning if it has
+  no free docks). "Open in Maps" hands off to Apple/Google Maps.
 - **Ride from here** plans a cycling route between two stations (Valhalla
   bicycle profile tuned for city bikes), shows the ride time against HSL's
   free 30-minute limit, and warns when the destination has no free docks.
