@@ -375,8 +375,8 @@
     clearPlace();
   }
   el.sheetClose.addEventListener('click', closeSheet);
-  // Bottom sheet (phone layout): drag the handle to resize; snap to collapsed / half / full,
-  // or dismiss by flinging it down. Tap toggles collapsed <-> half.
+  // Bottom sheet (phone layout): drag to resize; snaps to collapsed / half / full.
+  // Tap on the handle toggles collapsed <-> half. Closing is only via the ✕ button.
   const grabber = $('grabber');
   const SNAP = { collapsed: 150 };
   const snapHeights = () => ({ collapsed: SNAP.collapsed, half: Math.round(innerHeight * 0.5), full: Math.round(innerHeight * 0.9) });
@@ -413,10 +413,10 @@
   }
   function dragMove(y) {
     if (!drag) return;
-    const h = drag.h0 - (y - drag.y0);
-    const { full } = snapHeights();
-    if (h >= 80) { el.sheet.style.maxHeight = `${Math.min(h, full)}px`; el.sheet.style.transform = ''; }
-    else { el.sheet.style.maxHeight = '80px'; el.sheet.style.transform = `translateY(${80 - h}px)`; }
+    const { collapsed, full } = snapHeights();
+    // Dragging never dismisses the sheet: it bottoms out at the collapsed height (close with ✕).
+    const h = Math.max(collapsed, Math.min(full, drag.h0 - (y - drag.y0)));
+    el.sheet.style.maxHeight = `${h}px`; el.sheet.style.transform = '';
     updateStack();
   }
   function dragEnd(y, { tap = true } = {}) {
@@ -425,7 +425,6 @@
     const h = drag.h0 - dy, snaps = snapHeights(), wasCollapsed = drag.wasCollapsed;
     drag = null;
     if (Math.abs(dy) <= 3) { if (tap) applySnap(wasCollapsed ? 'half' : 'collapsed'); else applySnap(wasCollapsed ? 'collapsed' : el.sheet.classList.contains('full') ? 'full' : 'half'); return; }
-    if ((v > 0.6 && h < snaps.half) || h < 90 || (wasCollapsed && dy > 40)) { applySnap('half'); closeSheet(); return; }
     let target = 'half';
     if (v > 0.4) target = h < snaps.half ? 'collapsed' : 'half';
     else if (v < -0.4) target = h > snaps.half ? 'full' : 'half';

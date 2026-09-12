@@ -33,7 +33,7 @@ with live bike counts, your position, and a walking route to the nearest bike.
   (Esri World Imagery), Dark. Remembered across visits.
 - Refreshes every 60 s and whenever the tab becomes visible again.
 - Responsive: side panel on desktop and tablet, bottom sheet on phones that
-  you drag between collapsed / half / full and fling down to dismiss.
+  you drag between collapsed / half / full.
   Follows the system light/dark theme.
 
 ## Performance notes
