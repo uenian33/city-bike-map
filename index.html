@@ -43,29 +43,20 @@
     <span id="status-text">Loading stations…</span>
   </div>
 
-  <!-- Right-hand controls (Apple Maps style stack) -->
-  <div class="controls">
-    <div class="glass ctrl-group">
-      <button class="ctrl" id="zoom-in" aria-label="Zoom in">
-        <svg viewBox="0 0 24 24"><path d="M12 5a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H6a1 1 0 1 1 0-2h5V6a1 1 0 0 1 1-1Z"/></svg>
-      </button>
-      <button class="ctrl" id="zoom-out" aria-label="Zoom out">
-        <svg viewBox="0 0 24 24"><path d="M6 11h12a1 1 0 1 1 0 2H6a1 1 0 1 1 0-2Z"/></svg>
-      </button>
-    </div>
-    <div class="glass ctrl-group">
-      <button class="ctrl" id="layers" aria-label="Map view" title="Map view" aria-haspopup="menu">
-        <svg viewBox="0 0 24 24"><path d="M12 3 2 8.5 12 14l10-5.5L12 3Zm-7.7 8.1L2 12.5 12 18l10-5.5-2.3-1.4L12 15.4l-7.7-4.3ZM4.3 15.1 2 16.5 12 22l10-5.5-2.3-1.4L12 19.4l-7.7-4.3Z"/></svg>
-      </button>
-      <button class="ctrl" id="fit-all" aria-label="Show all stations" title="Show all stations">
-        <svg viewBox="0 0 24 24"><path d="M4 4h6v2H6v4H4V4Zm10 0h6v6h-2V6h-4V4ZM4 14h2v4h4v2H4v-6Zm14 0h2v6h-6v-2h4v-4Z"/></svg>
-      </button>
-    </div>
-    <div class="glass ctrl-group">
-      <button class="ctrl primary" id="locate" aria-label="My location" title="My location">
-        <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 3h-1.07A8 8 0 0 0 13 4.07V3a1 1 0 1 0-2 0v1.07A8 8 0 0 0 4.07 11H3a1 1 0 1 0 0 2h1.07A8 8 0 0 0 11 19.93V21a1 1 0 1 0 2 0v-1.07A8 8 0 0 0 19.93 13H21a1 1 0 1 0 0-2Zm-9 7a6 6 0 1 1 0-12 6 6 0 0 1 0 12Z"/></svg>
-      </button>
-    </div>
+  <!-- Map controls: one capsule, top-right (Apple Maps / Google Maps placement) -->
+  <div class="glass controls" role="toolbar" aria-orientation="vertical" aria-label="Map controls">
+    <button class="ctrl" id="layers" aria-label="Map view" title="Map view" aria-haspopup="menu" aria-controls="view-menu">
+      <svg viewBox="0 0 24 24"><path d="M12 3 2 8.5 12 14l10-5.5L12 3Zm-7.7 8.1L2 12.5 12 18l10-5.5-2.3-1.4L12 15.4l-7.7-4.3ZM4.3 15.1 2 16.5 12 22l10-5.5-2.3-1.4L12 19.4l-7.7-4.3Z"/></svg>
+    </button>
+    <button class="ctrl" id="locate" aria-label="My location" title="My location">
+      <svg viewBox="0 0 24 24"><path d="M20.3 3.7a1 1 0 0 0-1.07-.22l-15 6a1 1 0 0 0 .06 1.88l6.3 2.04 2.04 6.3a1 1 0 0 0 1.88.06l6-15a1 1 0 0 0-.21-1.06Z"/></svg>
+    </button>
+    <button class="ctrl zoom" id="zoom-in" aria-label="Zoom in" title="Zoom in">
+      <svg viewBox="0 0 24 24"><path d="M12 5a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H6a1 1 0 1 1 0-2h5V6a1 1 0 0 1 1-1Z"/></svg>
+    </button>
+    <button class="ctrl zoom" id="zoom-out" aria-label="Zoom out" title="Zoom out">
+      <svg viewBox="0 0 24 24"><path d="M6 11h12a1 1 0 1 1 0 2H6a1 1 0 1 1 0-2Z"/></svg>
+    </button>
   </div>
 
   <!-- Map view picker -->
@@ -77,6 +68,10 @@
       <button class="view-opt" data-view="satellite" role="menuitemradio"><span class="thumb thumb-sat"></span>Satellite</button>
       <button class="view-opt" data-view="dark" role="menuitemradio"><span class="thumb thumb-dark"></span>Dark</button>
     </div>
+    <button class="menu-item" id="fit-all" role="menuitem">
+      <svg viewBox="0 0 24 24"><path d="M4 4h6v2H6v4H4V4Zm10 0h6v6h-2V6h-4V4ZM4 14h2v4h4v2H4v-6Zm14 0h2v6h-6v-2h4v-4Z"/></svg>
+      Show all stations
+    </button>
   </div>
 
   <!-- Primary action: route to nearest bike -->

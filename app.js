@@ -16,7 +16,7 @@
     chip: $('status-chip'), statusText: $('status-text'), liveDot: $('live-dot'),
     sheet: $('sheet'), sheetBody: $('sheet-body'), sheetClose: $('sheet-close'),
     locate: $('locate'), nearest: $('nearest-btn'), fitAll: $('fit-all'),
-    zoomIn: $('zoom-in'), zoomOut: $('zoom-out'), about: $('about'), menu: $('menu-btn'),
+    zoomIn: $('zoom-in'), zoomOut: $('zoom-out'), controls: document.querySelector('.controls'), about: $('about'), menu: $('menu-btn'),
   };
 
   // ---------- Map ----------
@@ -133,15 +133,20 @@
     try { localStorage.setItem('cbm-view', v); } catch {}
     map.setStyle(styleUrl(), { diff: false });
     document.querySelectorAll('.view-opt').forEach((b) => b.classList.toggle('active', b.dataset.view === v));
-    setOpen($('view-menu'), false);
+    setOpen($('view-menu'), false); $('layers').setAttribute('aria-expanded', false);
   }
   dark.addEventListener('change', () => { if (view === 'auto') map.setStyle(styleUrl(), { diff: false }); });
-  $('layers').addEventListener('click', (e) => { e.stopPropagation(); const m = $('view-menu'); setOpen(m, !m.classList.contains('open')); });
+  $('layers').addEventListener('click', (e) => {
+    e.stopPropagation(); const m = $('view-menu'), open = !m.classList.contains('open');
+    setOpen(m, open); $('layers').setAttribute('aria-expanded', open);
+  });
   document.querySelectorAll('.view-opt').forEach((b) => {
     b.classList.toggle('active', b.dataset.view === view);
     b.addEventListener('click', () => setView(b.dataset.view));
   });
-  document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#view-menu, #layers')) setOpen($('view-menu'), false); });
+  document.addEventListener('pointerdown', (e) => {
+    if (!e.target.closest('#view-menu, #layers')) { setOpen($('view-menu'), false); $('layers').setAttribute('aria-expanded', false); }
+  });
   const setRouteNow = (geo) => { routeGeo = geo; map.getSource('route')?.setData(geo); };
   // Routes "draw themselves" onto the map: every line grows from its start over ~700 ms.
   let routeAnim = 0;
@@ -315,7 +320,7 @@
         cacheInfo = c.info; cacheStatus = c.status;
         renderStations();
         paintStatus(new Date((c.status.last_updated || 0) * 1000 || c.at), true);
-        fitAll(false);
+        if (!frameMe()) fitAll(false);
       }
     }
     try {
@@ -327,7 +332,7 @@
       paintStatus(status.last_updated ? new Date(status.last_updated * 1000) : new Date());
       el.liveDot.classList.remove('dot-err'); el.liveDot.classList.add('dot-live');
       rerenderSheet();
-      if (initial && !fitDone) fitAll(false);
+      if (initial && !frameMe() && !fitDone) fitAll(false);
     } catch (err) {
       console.error(err);
       el.statusText.textContent = initial ? 'Could not load stations' : 'Live update failed — retrying';
@@ -341,8 +346,42 @@
     for (const s of stations.values()) b.extend([s.lon, s.lat]);
     if (b.isEmpty()) return;
     fitDone = true;
-    const padding = isWide() ? { top: 96, left: 40, right: 96, bottom: 48 } : { top: 136, left: 24, right: 24, bottom: 120 };
-    map.fitBounds(b, { padding, animate, maxZoom: 15, duration: animate ? 700 : 0 });
+    map.fitBounds(b, { padding: viewPadding(), animate, maxZoom: 15, duration: animate ? 700 : 0 });
+  }
+  // The part of the map not covered by floating chrome, inset by a pin's height so markers at
+  // the edge stay fully visible.
+  function viewPadding() {
+    const PIN = 28;
+    const top = Math.max(el.chip.getBoundingClientRect().bottom, isWide() ? 0 : el.controls.getBoundingClientRect().bottom);
+    const left = isWide() && !el.sheet.hidden ? el.sheet.getBoundingClientRect().right : 0;
+    const right = isWide() ? innerWidth - el.controls.getBoundingClientRect().left : 0;
+    const bottom = innerHeight - el.nearest.getBoundingClientRect().top;
+    return { top: Math.round(top + PIN), left: Math.round(left + PIN), right: Math.round(right + PIN), bottom: Math.round(bottom + PIN / 2) };
+  }
+  // Centre on the user at a zoom that shows at least NEARBY_COUNT stations. Returns false when
+  // there is nothing sensible to frame: no stations yet, or the user is far from the network.
+  const NEARBY_COUNT = 3, NEARBY_MAX_M = 15000;
+  function fitNearby(animate = true) {
+    if (!me || !stations.size) return false;
+    const near = [...stations.values()].map((s) => [haversine(me, s), s]).sort((a, b) => a[0] - b[0]).slice(0, NEARBY_COUNT);
+    if (near[0][0] > NEARBY_MAX_M) return false;
+    // A box symmetric around the user keeps the blue dot in the middle of the visible map.
+    let dLat = 0, dLon = 0;
+    for (const [, s] of near) { dLat = Math.max(dLat, Math.abs(s.lat - me.lat)); dLon = Math.max(dLon, Math.abs(s.lon - me.lon)); }
+    const b = new maplibregl.LngLatBounds([me.lon - dLon, me.lat - dLat], [me.lon + dLon, me.lat + dLat]);
+    fitDone = true;
+    map.fitBounds(b, { padding: viewPadding(), animate, maxZoom: 17, duration: animate ? 900 : 0 });
+    return true;
+  }
+  // On load the map frames the user as soon as both their position and the stations are known,
+  // unless they have already started exploring (panned, zoomed or opened a station).
+  let framedMe = false, userMoved = false;
+  map.on('movestart', (e) => { if (e.originalEvent) userMoved = true; });
+  function frameMe() {
+    if (framedMe || !me || !stations.size) return framedMe;
+    if (userMoved || !el.sheet.hidden) return (framedMe = true);
+    framedMe = fitNearby(fitDone);
+    return framedMe;
   }
 
   // ---------- Selection & sheet ----------
@@ -409,13 +448,13 @@
       h = Math.max(0, el.sheet.offsetHeight - ty);
     }
     document.documentElement.style.setProperty('--sheet-h', `${Math.round(h)}px`);
-    // Space between the status chip and the sheet decides what floats above it: the whole
-    // stack, only the FAB (short phones), or nothing (tall sheet).
-    const room = innerHeight - h - el.chip.getBoundingClientRect().bottom;
-    const FAB_ROOM = 104, STACK_ROOM = 280; // FAB + margins; FAB + layers/fit + locate groups
+    // The FAB floats above the sheet only while it fits below the map-control capsule;
+    // a sheet that reaches the capsule hides that too.
+    const capsuleBottom = el.controls.getBoundingClientRect().bottom;
+    const room = innerHeight - h - capsuleBottom;
+    const FAB_ROOM = 88; // FAB + margins
     document.body.classList.toggle('sheet-tall', h > 0 && room < FAB_ROOM);
-    document.body.classList.toggle('stack-tight', h > 0 && room < STACK_ROOM);
-    document.body.classList.toggle('sheet-open', h > 0);
+    document.body.classList.toggle('sheet-full', h > 0 && room < 8);
   }
   new ResizeObserver(updateStack).observe(el.sheet);
   addEventListener('resize', updateStack);
@@ -660,7 +699,8 @@
   el.locate.addEventListener('click', async () => {
     try {
       const p = await locate();
-      map.flyTo({ center: [p.lon, p.lat], zoom: Math.max(map.getZoom(), 15), duration: 700 });
+      framedMe = true;
+      if (!fitNearby(true)) map.flyTo({ center: [p.lon, p.lat], zoom: Math.max(map.getZoom(), 15), duration: 700 });
     } catch (e) { toast(e.message); }
   });
 
@@ -1006,7 +1046,7 @@
   // ---------- Misc controls ----------
   el.zoomIn.addEventListener('click', () => map.zoomIn());
   el.zoomOut.addEventListener('click', () => map.zoomOut());
-  el.fitAll.addEventListener('click', () => fitAll(true));
+  el.fitAll.addEventListener('click', () => { setOpen($('view-menu'), false); fitAll(true); });
   el.menu.addEventListener('click', () => el.about.showModal());
   el.about.addEventListener('click', (e) => { if (e.target === el.about) el.about.close(); });
   map.on('click', () => {
@@ -1027,8 +1067,7 @@
   refresh(true);
   setInterval(() => refresh(false), REFRESH_MS);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(false); });
-  if (location.protocol === 'https:' && navigator.permissions?.query) {
-    // Silently show the blue dot if the user already granted location earlier.
-    navigator.permissions.query({ name: 'geolocation' }).then((p) => { if (p.state === 'granted') locate().catch(() => {}); }).catch(() => {});
-  }
+  // Location is on by default: ask right away (the browser prompts once), then frame the user.
+  // A denial on load stays silent; the location button reports errors when tapped.
+  locate().then(frameMe).catch(() => {});
 })();

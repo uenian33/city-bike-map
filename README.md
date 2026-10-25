@@ -12,7 +12,13 @@ with live bike counts, your position, and a walking route to the nearest bike.
   stations are drawn by the GPU as MapLibre circle/text layers; from zoom 14
   the stations inside the viewport become HTML "glass" pins, added and removed
   as you pan. Nothing off-screen costs anything.
-- **My location** button shows your position and accuracy.
+- Location is on by default: the page asks once on load and, when allowed,
+  centres on you at a zoom that keeps at least the three nearest stations in
+  view (unless you have already started panning or opened a station). The
+  **My location** button re-frames the same way.
+- Map controls (view, location, and zoom on mouse devices) share one glass
+  capsule at the top right; "Show all stations" lives in the Map view menu.
+  The bottom-right corner is left to the single primary action.
 - **Nearest bike** finds the closest station that actually has a bike and
   draws a walking route with turn-by-turn steps and an ETA.
 - **Search** matches station names and, via Photon (OpenStreetMap), streets,

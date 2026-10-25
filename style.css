@@ -271,7 +271,7 @@ svg { flex: none; }
   height: 32px; padding: 0 var(--s3); border-radius: var(--r-full);
   font: var(--t-label-m); color: var(--on-surface-variant);
   font-variant-numeric: tabular-nums; white-space: nowrap;
-  max-width: calc(100vw - var(--edge-l) - var(--edge-r)); overflow: hidden; text-overflow: ellipsis;
+  max-width: calc(100vw - var(--edge-l) - var(--edge-r) - var(--target) - var(--s3)); overflow: hidden; text-overflow: ellipsis;
   box-shadow: var(--elev-1), inset 0 0 0 0.5px var(--glass-edge);
   animation: dropIn var(--slow) var(--ease-decel) .08s both;
   transition: left var(--med) var(--ease), top var(--med) var(--ease), opacity var(--fast);
@@ -285,49 +285,50 @@ svg { flex: none; }
 .dot-err { background: var(--error); } .dot-err::after { display: none; }
 @keyframes pulse { 0% { transform: scale(1); opacity: .6; } 100% { transform: scale(3); opacity: 0; } }
 
-/* ---------- Map controls (right) ---------- */
+/* ---------- Map controls — one glass capsule, top-right ----------
+   Map-state controls (view, location, zoom) sit together at the top, out of the way of the
+   bottom sheet; the bottom-right corner belongs to the single primary action (the FAB). */
 .controls {
   position: fixed; z-index: 20; right: var(--edge-r);
-  bottom: calc(var(--margin) + var(--bar-h) + var(--s4) + var(--stack-base));
-  display: flex; flex-direction: column; gap: var(--s3); align-items: flex-end;
-  transition: bottom var(--slow) var(--spring), opacity var(--med), transform var(--med) var(--ease);
+  top: calc(var(--edge-t) + var(--bar-h) + var(--s2));
+  display: flex; flex-direction: column;
+  width: var(--target); border-radius: var(--r-full); overflow: hidden;
+  animation: dropIn var(--slow) var(--ease-decel) .12s both;
+  transition: opacity var(--med), transform var(--med) var(--ease);
 }
-/* While the sheet is being dragged the stack follows the finger 1:1. */
-body.sheet-drag .controls, body.sheet-drag .fab, body.sheet-drag .view-menu, body.sheet-drag .toast { transition: none; }
-/* With the sheet open on a phone, drop the zoom buttons (pinch works) so the stack fits above it. */
-.controls .ctrl-group { transition: opacity var(--med), max-height var(--slow) var(--ease), margin var(--slow) var(--ease); max-height: 120px; }
-body.sheet-open .controls .ctrl-group:first-child { opacity: 0; max-height: 0; margin-bottom: calc(-1 * var(--s3)); pointer-events: none; }
-/* A tall sheet leaves no room above it: tuck the stack away. */
-body.sheet-tall .controls, body.sheet-tall .fab, body.stack-tight .controls { opacity: 0; transform: translateY(12px); pointer-events: none; }
-.controls .ctrl-group { animation: riseIn var(--slow) var(--ease-decel) both; }
-.controls .ctrl-group:nth-child(2) { animation-delay: 60ms; } .controls .ctrl-group:nth-child(3) { animation-delay: 120ms; }
-@keyframes riseIn { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
-.ctrl-group { display: flex; flex-direction: column; border-radius: var(--r-full); overflow: hidden; }
+/* While the sheet is being dragged the FAB follows the finger 1:1. */
+body.sheet-drag .fab, body.sheet-drag .toast { transition: none; }
+/* A sheet pulled to full height covers the map: tuck the floating chrome away. */
+body.sheet-tall .fab { opacity: 0; transform: translateY(12px); pointer-events: none; }
+body.sheet-full .controls { opacity: 0; pointer-events: none; }
 .ctrl {
   width: var(--target); height: var(--target); display: grid; place-items: center; color: var(--on-surface);
-  position: relative;
+  position: relative; flex: none;
   transition: background var(--fast), color var(--med);
 }
 .ctrl + .ctrl::before { content: ""; position: absolute; top: 0; left: 12px; right: 12px; height: 1px; background: var(--outline-variant); }
 .ctrl:active { background: var(--state-press); }
 .ctrl:active svg { transform: scale(.88); }
 .ctrl:focus-visible { outline-offset: -3px; border-radius: var(--r-full); }
-.ctrl svg { width: 24px; height: 24px; fill: currentColor; transition: transform var(--fast) var(--ease); }
-.ctrl.primary { color: var(--primary); }
-.ctrl.primary.active { color: var(--on-primary); background: var(--primary); }
+.ctrl svg { width: 22px; height: 22px; fill: currentColor; transition: transform var(--fast) var(--ease); }
+.ctrl[aria-expanded="true"], .ctrl.open { color: var(--primary); }
+#locate.active { color: var(--primary); }
 .ctrl.busy svg { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes riseIn { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
+/* Zoom buttons only where there is no pinch: mouse / trackpad devices. */
+@media (pointer: coarse) { .ctrl.zoom { display: none; } }
 
 /* ---------- Map view picker — popover menu ---------- */
 .view-menu {
   position: fixed; z-index: 30;
-  right: calc(var(--edge-r) + var(--target) + var(--s3));
-  bottom: calc(var(--margin) + var(--bar-h) + var(--s4) + var(--stack-base));
-  padding: var(--s4); width: 320px;
-  max-width: calc(100vw - var(--edge-l) - var(--edge-r) - var(--target) - var(--s3));
+  right: calc(var(--edge-r) + var(--target) + var(--s2));
+  top: calc(var(--edge-t) + var(--bar-h) + var(--s2));
+  padding: var(--s4) var(--s4) var(--s2); width: 320px;
+  max-width: calc(100vw - var(--edge-l) - var(--edge-r) - var(--target) - var(--s2));
   border-radius: var(--r-xl);
   background: var(--glass-bg-strong); box-shadow: var(--elev-3), inset 0 0 0 0.5px var(--glass-edge);
-  transform-origin: right bottom;
+  transform-origin: right top;
   opacity: 0; transform: translateX(8px) scale(.92);
   transition: opacity var(--fast) var(--ease), transform var(--med) var(--spring);
 }
@@ -345,6 +346,15 @@ body.sheet-tall .controls, body.sheet-tall .fab, body.stack-tight .controls { op
 .view-opt:active .thumb { transform: scale(.94); }
 .view-opt.active { color: var(--primary); font-weight: 600; }
 .view-opt.active .thumb { box-shadow: 0 0 0 2px var(--surface-container-lowest), 0 0 0 4px var(--primary); }
+.menu-item {
+  display: flex; align-items: center; gap: var(--s3); width: calc(100% + 2 * var(--s2));
+  min-height: var(--target); margin: var(--s3) calc(-1 * var(--s2)) 0; padding: 0 var(--s3);
+  border-radius: var(--r-md); font: var(--t-label-l); font-weight: 500; color: var(--on-surface);
+  border-top: 0; position: relative;
+}
+.menu-item::before { content: ""; position: absolute; top: calc(-1 * var(--s2) + -1px); left: var(--s3); right: var(--s3); height: 1px; background: var(--outline-variant); }
+.menu-item:active { background: var(--state-press); }
+.menu-item svg { width: 22px; height: 22px; fill: currentColor; color: var(--on-surface-variant); }
 .thumb-std { background: linear-gradient(135deg, #f3f4f6 0 40%, #dfe6ee 40% 55%, #f3f4f6 55%), #f3f4f6; }
 .thumb-det { background: linear-gradient(135deg, #f7f0dc 0 35%, #c9e4b4 35% 50%, #ffffff 50% 65%, #b9d7f2 65%); }
 .thumb-sat { background: radial-gradient(circle at 30% 30%, #4f6b3a 0 30%, #2d4a5e 30% 60%, #1c2f3e 60%); }
@@ -559,7 +569,7 @@ body.sheet-tall .controls, body.sheet-tall .fab, body.stack-tight .controls { op
 /* ---------- Snackbar (M3) / banner ---------- */
 .toast {
   position: fixed; z-index: 40;
-  left: var(--edge-l); right: calc(var(--edge-r) + var(--target) + var(--s3));
+  left: var(--edge-l); right: var(--edge-r);
   bottom: calc(var(--margin) + var(--bar-h) + var(--s4) + var(--stack-base));
   min-height: var(--target); display: flex; align-items: center;
   padding: var(--s3) var(--s4); border-radius: var(--r-md);
@@ -580,9 +590,9 @@ body.sheet-tall .controls, body.sheet-tall .fab, body.stack-tight .controls { op
   :root { --stack-base: var(--sab); }
   .search { right: auto; width: var(--panel-w); }
   .chip { top: calc(var(--edge-t) + var(--bar-h) + var(--s3)); }
-  .controls, .view-menu { bottom: calc(var(--margin) + var(--bar-h) + var(--s4) + var(--sab)); }
-  body.sheet-tall .controls, body.sheet-tall .fab, body.stack-tight .controls { opacity: 1; transform: none; pointer-events: auto; }
-  body.sheet-open .controls .ctrl-group:first-child { opacity: 1; max-height: 120px; margin-bottom: 0; pointer-events: auto; }
+  .controls, .view-menu { top: var(--edge-t); }
+  body.sheet-tall .fab { opacity: 1; transform: none; pointer-events: auto; }
+  body.sheet-full .controls { opacity: 1; pointer-events: auto; }
   .sheet {
     left: var(--edge-l); right: auto; bottom: auto;
     top: calc(var(--edge-t) + var(--bar-h) + var(--s3));
@@ -617,10 +627,6 @@ body.sheet-tall .controls, body.sheet-tall .fab, body.stack-tight .controls { op
 }
 
 /* Short viewports (landscape phones, split-screen): give the map back its height. */
-@media (max-height: 500px) {
-  .controls .ctrl-group:first-child { display: none; }  /* pinch to zoom */
-  .controls { gap: var(--s2); }
-}
 @media (max-height: 500px) and (min-width: 600px) {
   :root { --edge-t: calc(var(--s3) + var(--sat)); --margin: 16px; }
   .fab { padding: 0 var(--s4); }
@@ -628,7 +634,7 @@ body.sheet-tall .controls, body.sheet-tall .fab, body.stack-tight .controls { op
 
 /* Pointer devices with hover: hover state layers (never shown on touch, where they stick). */
 @media (hover: hover) and (pointer: fine) {
-  .icon-btn:hover::after, .ctrl:hover { background: var(--state-hover); }
+  .icon-btn:hover::after, .ctrl:hover, .menu-item:hover { background: var(--state-hover); }
   .ctrl:hover svg { transform: scale(1.06); }
   .results li:not(.hdr):not(.empty):hover, .near li:hover { background: var(--state-hover); }
   .btn:hover::after, .fab:hover::after { background: var(--state-hover); }
@@ -655,7 +661,7 @@ body.sheet-tall .controls, body.sheet-tall .fab, body.stack-tight .controls { op
 /* Windows High Contrast / forced colors */
 @media (forced-colors: active) {
   .glass, .btn, .fab, .stat, .chip, .results, .toast { border: 1px solid CanvasText; }
-  .ctrl.primary.active, .btn.primary, .fab { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+  .btn.primary, .fab { forced-color-adjust: none; background: Highlight; color: HighlightText; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
