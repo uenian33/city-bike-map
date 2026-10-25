@@ -26,6 +26,7 @@
   const wideMq = matchMedia('(min-width: 600px)');
   const isWide = () => wideMq.matches;
   // Map padding that keeps a fitted route clear of the search bar, side sheet and controls.
+  const ROUTE_MAX_ZOOM = 15.5; // closest a fitted route is shown
   function routePadding() {
     if (isWide()) {
       const left = el.sheet.hidden ? 40 : Math.round(el.sheet.getBoundingClientRect().right) + 32;
@@ -810,7 +811,8 @@
     const b = new maplibregl.LngLatBounds([from.lon, from.lat], [from.lon, from.lat]);
     for (const c of route.coords) b.extend(c);
     b.extend([to.lon, to.lat]);
-    map.fitBounds(b, { padding: routePadding(), maxZoom: 17, duration: 800 });
+    // Short walks would otherwise fill the screen: cap the zoom so the surrounding blocks stay in view.
+    map.fitBounds(b, { padding: routePadding(), maxZoom: ROUTE_MAX_ZOOM, duration: 800 });
   }
 
   let routing = false;
@@ -1013,7 +1015,7 @@
       const bounds = new maplibregl.LngLatBounds([me.lon, me.lat], [me.lon, me.lat]);
       for (const l of legs) for (const c of l.route.coords) bounds.extend(c);
       bounds.extend([h.lon, h.lat]);
-      map.fitBounds(bounds, { padding: routePadding(), maxZoom: 16, duration: 800 });
+      map.fitBounds(bounds, { padding: routePadding(), maxZoom: ROUTE_MAX_ZOOM, duration: 800 });
       renderJourneySheet();
     } catch (e) {
       toast(e.message);
