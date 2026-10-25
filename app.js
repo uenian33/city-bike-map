@@ -281,6 +281,7 @@
     };
     map.getSource('stations')?.setData(stationGeo);
     syncPins();
+    paintNearest();
   }
   // Keep HTML pins only for stations inside the (padded) viewport, and only when zoomed in.
   const visible = new Set();
@@ -668,6 +669,15 @@
   }
 
   // ---------- Geolocation ----------
+  // The bottom card names the nearest station with a bike, so the button says where it goes.
+  const nearSub = $('near-sub');
+  function paintNearest() {
+    const s = me ? nearestWithBikes(me) : null;
+    const txt = !me ? 'Find the closest bike to you'
+      : !s ? 'No bikes nearby right now'
+      : `${s.name} · ${s.bikes} ${s.bikes === 1 ? 'bike' : 'bikes'} · ${fmtDist(haversine(me, s))}`;
+    if (nearSub.textContent !== txt) nearSub.textContent = txt;
+  }
   let watchId = null, lastMeRender = 0;
   function setMe(pos) {
     me = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy };
@@ -681,7 +691,7 @@
     el.locate.classList.add('active');
     // GPS ticks every second; distances in the sheet only need an occasional refresh.
     const now = performance.now();
-    if (now - lastMeRender > 3000) { lastMeRender = now; rerenderSheet(); }
+    if (now - lastMeRender > 3000) { lastMeRender = now; rerenderSheet(); paintNearest(); }
   }
   function locate({ timeout = 12000 } = {}) {
     return new Promise((resolve, reject) => {

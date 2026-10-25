@@ -268,7 +268,7 @@ svg { flex: none; }
 /* ==========================================================================
    Map chrome — laid out after the Google Maps app:
    top: search bar, filter chips under it with the map-view button at the row's right end;
-   bottom: one floating dock — "Your nearest station" filling it, my location at its end. All of it steps aside while a phone's bottom sheet is open.
+   bottom: a "Your nearest station" card with my location floating just above it. All of it steps aside while a phone's bottom sheet is open.
    ========================================================================== */
 :root {
   --chip-h: 40px;
@@ -324,36 +324,44 @@ svg { flex: none; }
 }
 #layers svg { width: 22px; height: 22px; }
 
-/* Bottom dock: one floating bar holding the primary action and my location, lifted
-   clear of the screen edge (and of the home indicator / gesture bar). */
-:root { --dock-lift: max(var(--s6), calc(var(--sab) + var(--s3))); --dock-pad: 6px; }
+/* Bottom: a "Your nearest station" card — what it is, which station, and a go button —
+   with my location floating just above its right end. Lifted well clear of the screen
+   edge and of the home indicator / gesture bar. */
+:root { --dock-lift: max(32px, calc(var(--sab) + var(--s4))); --card-h: 72px; }
 .stack {
   position: fixed; z-index: 20; left: var(--edge-l); right: var(--edge-r);
   bottom: calc(var(--dock-lift) + var(--sheet-h));
-  display: flex; align-items: center; gap: var(--dock-pad);
-  padding: var(--dock-pad); border-radius: var(--r-full);
-  box-shadow: var(--elev-3);
+  display: flex; flex-direction: column; align-items: flex-end; gap: var(--s3);
+  pointer-events: none; /* only the buttons take touches */
   transition: bottom var(--slow) var(--spring), opacity var(--med), transform var(--med) var(--ease);
   animation: riseIn var(--slow) var(--ease-decel) .12s backwards;
 }
-/* "Your nearest station" fills the dock */
-.fab {
-  position: relative; flex: 1; min-width: 0;
-  display: inline-flex; align-items: center; justify-content: center; gap: var(--s3);
-  height: var(--target); padding: 0 var(--s5); border-radius: var(--r-full);
-  font: var(--t-title-m); white-space: nowrap;
-  background: var(--primary); color: var(--on-primary);
+.stack > * { pointer-events: auto; }
+.near-card {
+  width: 100%; min-height: var(--card-h);
+  display: flex; align-items: center; gap: var(--s3);
+  padding: var(--s3) var(--s3) var(--s3) var(--s3); border-radius: var(--r-xl);
+  text-align: left; box-shadow: var(--elev-3);
   transition: transform var(--med) var(--spring);
 }
-.fab span { overflow: hidden; text-overflow: ellipsis; }
-#locate { flex: none; background: var(--surface-container); box-shadow: none; }
-@media (max-width: 379px) { .fab { padding: 0 var(--s3); gap: var(--s2); font-size: 0.9375rem; } }
-.fab::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: transparent; transition: background var(--fast); }
-.fab:active { transform: scale(0.96); }
-.fab:active::after { background: var(--state-press); }
-.fab svg { width: 24px; height: 24px; fill: currentColor; position: relative; z-index: 1; }
-.fab.busy { pointer-events: none; opacity: .85; }
-.fab.busy svg { animation: spin 1s linear infinite; }
+.near-card::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: transparent; transition: background var(--fast); }
+.near-card:active { transform: scale(0.98); }
+.near-card:active::after { background: var(--state-press); }
+.near-ic {
+  width: var(--target); height: var(--target); border-radius: var(--r-lg); flex: none;
+  display: grid; place-items: center; background: var(--primary-container); color: var(--on-primary-container);
+}
+.near-ic svg { width: 24px; height: 24px; fill: currentColor; }
+.near-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.near-k { font: var(--t-title-m); }
+.near-v { font: var(--t-body-m); color: var(--on-surface-variant); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.near-go {
+  width: var(--target); height: var(--target); border-radius: var(--r-full); flex: none;
+  display: grid; place-items: center; background: var(--primary); color: var(--on-primary);
+}
+.near-go svg { width: 24px; height: 24px; fill: currentColor; }
+.near-card.busy { pointer-events: none; }
+.near-card.busy .near-go svg { animation: spin 1s linear infinite; }
 
 /* While the sheet is dragged the bottom row follows the finger 1:1. */
 body.sheet-drag .stack, body.sheet-drag .toast { transition: none; }
@@ -608,7 +616,7 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 .toast {
   position: fixed; z-index: 40;
   left: var(--edge-l); right: var(--edge-r);
-  bottom: calc(var(--dock-lift) + var(--target) + 2 * var(--dock-pad) + var(--s3) + var(--sheet-h));
+  bottom: calc(var(--dock-lift) + var(--card-h) + var(--s3) + var(--target) + var(--s3) + var(--sheet-h));
   min-height: var(--target); display: flex; align-items: center;
   padding: var(--s3) var(--s4); border-radius: var(--r-md);
   font: var(--t-body-m);
@@ -637,8 +645,7 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
   /* Wider screens: a panel-width card hanging under the map-view button. */
   .view-menu { left: auto; width: var(--panel-w); top: calc(var(--edge-t) + (var(--bar-h) + var(--chip-h)) / 2 + var(--s2)); }
   /* Bottom dock: a compact bar at the bottom right instead of full width. */
-  .stack { left: auto; }
-  .fab { flex: none; padding: 0 var(--s6) 0 var(--s5); }
+  .stack { left: auto; width: var(--panel-w); }
   body.sheet-open .stack, body.sheet-full .chips, body.sheet-full #layers { opacity: 1; transform: none; pointer-events: auto; }
   .sheet {
     left: var(--edge-l); right: auto; bottom: auto;
@@ -658,7 +665,7 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
   .grabber-hit { display: none; }
   .sheet.collapsed, .sheet.full { max-height: calc(100dvh - var(--edge-t) - var(--bar-h) - var(--s3) - var(--edge-b)); overflow: auto; }
   .toast {
-    left: 50%; right: auto; bottom: calc(var(--dock-lift) + var(--target) + 2 * var(--dock-pad) + var(--s3));
+    left: 50%; right: auto; bottom: var(--dock-lift);
     width: max-content; max-width: min(560px, calc(100vw - 2 * var(--margin) - 200px));
     border-radius: var(--r-full); padding: var(--s3) var(--s6);
     animation-name: toastInC;
@@ -677,7 +684,7 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 @media (hover: hover) and (pointer: fine) {
   .icon-btn:hover::after, .ctrl:hover::after, .fchip:hover::after, .menu-item:hover { background: var(--state-hover); }
   .results li:not(.hdr):not(.empty):hover, .near li:hover { background: var(--state-hover); }
-  .btn:hover::after, .fab:hover::after { background: var(--state-hover); }
+  .btn:hover::after, .near-card:hover::after { background: var(--state-hover); }
   .view-opt:hover .thumb { transform: scale(1.05) translateY(-2px); }
   .pin-wrap:hover .station-pin { transform: scale(1.12); }
 }
@@ -699,8 +706,8 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 @media (prefers-contrast: more) and (prefers-color-scheme: light) { :root { --on-surface-variant: #3c4043; } }
 /* Windows High Contrast / forced colors */
 @media (forced-colors: active) {
-  .glass, .btn, .fab, .stat, .results, .toast { border: 1px solid CanvasText; }
-  .btn.primary, .fab, .fchip[aria-pressed="true"] { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+  .glass, .btn, .stat, .results, .toast { border: 1px solid CanvasText; }
+  .btn.primary, .near-go, .fchip[aria-pressed="true"] { forced-color-adjust: none; background: Highlight; color: HighlightText; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
