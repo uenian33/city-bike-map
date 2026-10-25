@@ -284,7 +284,7 @@ svg { flex: none; }
   display: flex; gap: var(--s2); padding: 4px 2px 8px; margin: -4px -2px -8px;
   overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain;
   pointer-events: none; /* the gaps belong to the map */
-  animation: dropIn var(--slow) var(--ease-decel) .06s both;
+  animation: dropIn var(--slow) var(--ease-decel) .06s backwards; /* not "both": a held end state would override the hide rules */
   transition: opacity var(--med), transform var(--med) var(--ease);
 }
 .chips::-webkit-scrollbar { display: none; }
@@ -312,7 +312,7 @@ svg { flex: none; }
   position: fixed; z-index: 20; right: var(--edge-r); bottom: calc(var(--margin) + var(--stack-base));
   display: flex; flex-direction: column; align-items: center; gap: var(--s4);
   transition: bottom var(--slow) var(--spring), opacity var(--med), transform var(--med) var(--ease);
-  animation: riseIn var(--slow) var(--ease-decel) .12s both;
+  animation: riseIn var(--slow) var(--ease-decel) .12s backwards;
 }
 @keyframes riseIn { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
 /* Map view + my location share one capsule; zoom (mouse / trackpad only) gets its own. */
@@ -355,7 +355,7 @@ svg { flex: none; }
   max-width: calc(100vw - var(--edge-l) - var(--edge-r) - var(--fab-size) - var(--s3)); overflow: hidden; text-overflow: ellipsis;
   user-select: none; -webkit-user-select: none;
   box-shadow: var(--elev-1), inset 0 0 0 0.5px var(--glass-edge);
-  animation: riseIn var(--slow) var(--ease-decel) .16s both;
+  animation: riseIn var(--slow) var(--ease-decel) .16s backwards;
   transition: left var(--med) var(--ease), bottom var(--slow) var(--spring), opacity var(--med), transform var(--med) var(--ease);
 }
 .chip.tick #status-text { animation: tick var(--slow) var(--ease); }
@@ -369,8 +369,9 @@ svg { flex: none; }
 
 /* While the sheet is dragged the bottom row follows the finger 1:1. */
 body.sheet-drag .stack, body.sheet-drag .chip, body.sheet-drag .toast { transition: none; }
-/* A sheet that leaves no room above it hides the bottom row; one pulled to the top hides the top chrome too. */
-body.sheet-tall .stack, body.sheet-tall .chip { opacity: 0; transform: translateY(12px); pointer-events: none; }
+/* With a bottom sheet open the map belongs to the station: the floating buttons and status
+   step aside (closing the sheet brings them back). One pulled to the top hides the top chrome too. */
+body.sheet-open .stack, body.sheet-open .chip { opacity: 0; transform: translateY(12px); pointer-events: none; }
 body.sheet-full .chips { opacity: 0; transform: translateY(-8px); pointer-events: none; }
 
 /* ---------- Map view picker — popover from the layers button ---------- */
@@ -646,7 +647,7 @@ body.sheet-full .chips { opacity: 0; transform: translateY(-8px); pointer-events
   }
   .view-menu { bottom: calc(var(--margin) + var(--sab) + var(--fab-size) + var(--s4)); }
   .chip { bottom: calc(var(--margin) + var(--sab)); }
-  body.sheet-tall .stack, body.sheet-tall .chip, body.sheet-full .chips { opacity: 1; transform: none; pointer-events: auto; }
+  body.sheet-open .stack, body.sheet-open .chip, body.sheet-full .chips { opacity: 1; transform: none; pointer-events: auto; }
   .sheet {
     left: var(--edge-l); right: auto; bottom: auto;
     top: calc(var(--edge-t) + var(--bar-h) + var(--s3));
