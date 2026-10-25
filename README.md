@@ -25,7 +25,7 @@ with live bike counts, your position, and a walking route to the nearest bike.
   pinch, scroll or double-tap. While a phone's bottom sheet is open the bottom
   controls step aside; on wider screens the chips continue the top row beside
   the search bar. A station's actions sit under its title: Ride from here (yellow) and
-  Directions (blue) side by side, Open in Maps below.
+  Directions (teal) side by side, Open in Maps below.
 - **Your nearest station** finds the closest station that actually has a bike and
   draws a walking route with turn-by-turn steps and an ETA.
 - **Search** matches station names and, via Photon (OpenStreetMap), streets,

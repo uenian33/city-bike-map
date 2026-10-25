@@ -24,7 +24,7 @@
   --tonal: #f4f1ea;                /* secondary buttons */
   --on-tonal: #262420;
   --accent: #2563eb;               /* blue dot, walking route, links */
-  --walk: #2563eb; --on-walk: #ffffff;   /* walking blue, 5.2:1 */
+  --walk: #0f766e; --on-walk: #ffffff;   /* Directions: palette teal, 5.5:1 */
   --locate-on: #c98200;            /* location icon once permitted: orange-yellow, 3.1:1 */
   --ink: #1f1f1f;                  /* focus rings, selected text where yellow would be too faint */
   --surface: #ffffff;               /* pure white: separates cleanly from the map */
@@ -117,7 +117,7 @@
     --on-tonal: #f3f1ec;
     --accent: #60a5fa;
     --locate-on: #fcbc19;
-    --walk: #3b82f6; --on-walk: #0b1220;
+    --walk: #3fbfb3; --on-walk: #0b1f1d;
     --ink: #f3f1ec;
     --surface: #1d1c1a;
     --surface-container-lowest: #121110;
@@ -474,7 +474,7 @@ body.sheet-full .chips { opacity: 0; transform: translateY(-8px); pointer-events
 .actions { display: flex; flex-wrap: wrap; gap: var(--s2); margin: 0 0 var(--s4); }
 .actions > .btn { flex: 1 1 0; min-width: 0; white-space: normal; padding-inline: var(--s3); }
 .actions > .btn.wide { flex-basis: 100%; }
-/* Station sheet: Ride from here (brand yellow) and Directions (walking blue) share the top row
+/* Station sheet: Ride from here (brand yellow) and Directions (teal) share the top row
    at equal weight; Open in Maps is the quieter full-width row under them. */
 .actions > .btn.lead { min-height: var(--target); font-size: 1rem; }
 .btn.walk { background: var(--walk); color: var(--on-walk); }
