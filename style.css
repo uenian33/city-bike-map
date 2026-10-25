@@ -393,10 +393,10 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 /* ---------- Map view picker — drops down from the map-view button ---------- */
 .view-menu {
   position: fixed; z-index: 30;
-  right: var(--edge-r);
+  /* Phones: same left and right edges as the search bar above it. */
+  left: var(--edge-l); right: var(--edge-r);
   top: calc(var(--chips-top) + var(--chip-h) + var(--s2));
-  padding: var(--s4) var(--s4) var(--s2); width: 320px;
-  max-width: calc(100vw - var(--edge-l) - var(--edge-r));
+  padding: var(--s4) var(--s4) var(--s2);
   border-radius: var(--r-xl);
   background: var(--glass-bg-strong); box-shadow: var(--elev-3), inset 0 0 0 0.5px var(--glass-edge);
   transform-origin: right top;
@@ -662,7 +662,8 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
     right: calc(var(--edge-r) + var(--chip-h) + var(--s3));
   }
   #layers { top: calc(var(--edge-t) + (var(--bar-h) - var(--chip-h)) / 2); }
-  .view-menu { top: calc(var(--edge-t) + (var(--bar-h) + var(--chip-h)) / 2 + var(--s2)); }
+  /* Wider screens: a panel-width card hanging under the map-view button. */
+  .view-menu { left: auto; width: var(--panel-w); top: calc(var(--edge-t) + (var(--bar-h) + var(--chip-h)) / 2 + var(--s2)); }
   /* One bottom row: status at the left, then the primary action beside my location. */
   .chip { bottom: calc(var(--margin) + var(--sab) + (var(--fab-size) - 32px) / 2); }
   .fab { left: auto; right: calc(var(--edge-r) + var(--target) + var(--s3)); margin: 0; max-width: none; }
