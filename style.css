@@ -1,9 +1,9 @@
 /* ==========================================================================
    Helsinki City Bikes — design system
-   Modelled on the Google Maps app (Material 3, Google's own palette):
-   - Opaque white surfaces with soft Google elevation shadows — no glass.
-   - Google blue (#0B57D0) for primary actions, tonal light-blue secondary buttons,
-     Google green / yellow / grey for availability, Google Sans type.
+   Layout after the Google Maps app (Material 3); a restrained, neutral palette:
+   - Opaque white surfaces with soft shadows — no glass, no outline frames.
+   - Near-black ink for the primary action, soft grey fills for secondary ones;
+     colour only where it means something (availability, your location). Google Sans.
    - Material Icons, pill-shaped search bar, chips and buttons; 16px-corner FAB;
      28px-corner sheets.
    - Touch targets ≥ 48px, 4/8px grid, M3 window-size classes
@@ -13,33 +13,34 @@
 
 /* ---------- Tokens ---------- */
 :root {
-  /* Color — light (Google Material 3 baseline) */
-  --primary: #0b57d0;              /* white text on it: 6.6:1 */
+  /* Color — light. Neutral zinc surfaces and near-black ink for actions; colour is kept
+     for meaning only: availability (green / amber / grey) and the user's location (blue). */
+  --primary: #18181b;              /* ink: white text on it 17:1 */
   --on-primary: #ffffff;
-  --primary-container: #d3e3fd;
-  --on-primary-container: #041e49;
-  --tonal: #d3e3fd;                /* secondary buttons, selected chips */
-  --on-tonal: #0842a0;
-  --accent: #1a73e8;               /* blue dot, walking route */
+  --primary-container: #f4f4f5;
+  --on-primary-container: #18181b;
+  --tonal: #f4f4f5;                /* secondary buttons */
+  --on-tonal: #18181b;
+  --accent: #2563eb;               /* blue dot, walking route, links */
   --surface: #ffffff;
   --surface-container-lowest: #ffffff;
-  --surface-container-low: #f8fafd;
-  --surface-container: #f0f4f9;
-  --surface-container-high: #e9eef6;
-  --on-surface: #1f1f1f;
-  --on-surface-variant: #444746;
-  --outline: #747775;
-  --outline-variant: #c4c7c5;
-  --inverse-surface: #303030;
-  --inverse-on-surface: #f2f2f2;
+  --surface-container-low: #fafafa;
+  --surface-container: #f4f4f5;
+  --surface-container-high: #ececee;
+  --on-surface: #18181b;
+  --on-surface-variant: #6b6b70;   /* 5.3:1 on white */
+  --outline: #a1a1aa;
+  --outline-variant: #e4e4e7;
+  --inverse-surface: #18181b;
+  --inverse-on-surface: #fafafa;
   --scrim: rgba(0, 0, 0, 0.32);
 
-  /* Status — fills (pins, dots) and accessible text tones */
-  --ok: #1e8e3e;      --ok-text: #137333;     --ok-container: #e6f4ea;
-  --warn: #f29900;    --warn-text: #b06000;   --warn-container: #fef7e0;
-  --none: #80868b;
-  --error: #b3261e;   --error-container: #fce8e6;
-  --hsl-yellow: #fbbc04;
+  /* Status — fills (pins, dots, bars) and accessible text tones */
+  --ok: #1f9d55;      --ok-text: #17824a;     --ok-container: #ecf7f0;
+  --warn: #e8930c;    --warn-text: #a85f00;   --warn-container: #fdf4e6;
+  --none: #a1a1aa;
+  --error: #c0392b;   --error-container: #fbeceb;
+  --hsl-yellow: #fcbc19;
 
   /* Surfaces: Google Maps floats opaque cards over the map, not glass. */
   --glass-bg: var(--surface);
@@ -49,9 +50,9 @@
   --glass-highlight: none;
 
   /* Elevation (Google Material shadows) */
-  --elev-1: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
-  --elev-2: 0 1px 2px rgba(60, 64, 67, 0.3), 0 2px 6px 2px rgba(60, 64, 67, 0.15);
-  --elev-3: 0 1px 3px rgba(60, 64, 67, 0.3), 0 4px 8px 3px rgba(60, 64, 67, 0.15);
+  --elev-1: 0 1px 2px rgba(24, 24, 27, 0.08), 0 2px 8px rgba(24, 24, 27, 0.08);
+  --elev-2: 0 1px 3px rgba(24, 24, 27, 0.08), 0 6px 20px rgba(24, 24, 27, 0.10);
+  --elev-3: 0 2px 6px rgba(24, 24, 27, 0.06), 0 12px 32px rgba(24, 24, 27, 0.14);
 
   /* State layers (M3): overlay of the content color */
   --state-hover: color-mix(in srgb, currentColor 8%, transparent);
@@ -102,29 +103,29 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --primary: #a8c7fa;            /* dark text on it: 8:1 */
-    --on-primary: #062e6f;
-    --primary-container: #0842a0;
-    --on-primary-container: #d3e3fd;
-    --tonal: #004a77;
-    --on-tonal: #c2e7ff;
-    --accent: #8ab4f8;
-    --surface: #1f1f1f;
-    --surface-container-lowest: #0e0e0e;
-    --surface-container-low: #1b1b1b;
-    --surface-container: #282a2c;
-    --surface-container-high: #333537;
-    --on-surface: #e3e3e3;
-    --on-surface-variant: #c4c7c5;
-    --outline: #8e918f;
-    --outline-variant: #444746;
-    --inverse-surface: #e3e3e3;
-    --inverse-on-surface: #303030;
-    --scrim: rgba(0, 0, 0, 0.5);
-    --ok: #81c995;  --ok-text: #81c995;  --ok-container: rgba(129, 201, 149, 0.16);
-    --warn: #fdd663; --warn-text: #fdd663; --warn-container: rgba(253, 214, 99, 0.14);
-    --none: #9aa0a6;
-    --error: #f2b8b5; --error-container: rgba(242, 184, 181, 0.14);
+    --primary: #f4f4f5;
+    --on-primary: #18181b;
+    --primary-container: #2e2e32;
+    --on-primary-container: #f4f4f5;
+    --tonal: #2e2e32;
+    --on-tonal: #f4f4f5;
+    --accent: #60a5fa;
+    --surface: #1c1c1f;
+    --surface-container-lowest: #111113;
+    --surface-container-low: #202023;
+    --surface-container: #27272a;
+    --surface-container-high: #2f2f33;
+    --on-surface: #f4f4f5;
+    --on-surface-variant: #a1a1aa;
+    --outline: #71717a;
+    --outline-variant: #3f3f46;
+    --inverse-surface: #f4f4f5;
+    --inverse-on-surface: #18181b;
+    --scrim: rgba(0, 0, 0, 0.55);
+    --ok: #4cc382;  --ok-text: #5cc58a;  --ok-container: rgba(76, 195, 130, 0.14);
+    --warn: #f0a63a; --warn-text: #f5b347; --warn-container: rgba(240, 166, 58, 0.14);
+    --none: #8e8e93;
+    --error: #f08b80; --error-container: rgba(240, 139, 128, 0.14);
     --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
     --elev-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
     --elev-3: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 8px 3px rgba(0, 0, 0, 0.15);
@@ -150,7 +151,7 @@ body {
 }
 button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; padding: 0; touch-action: manipulation; }
 input { font: inherit; color: inherit; }
-a { color: var(--primary); text-decoration: none; }
+a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 [hidden] { display: none !important; }
 :focus { outline: none; }
@@ -244,7 +245,7 @@ svg { flex: none; }
   cursor: pointer; transition: background var(--fast), transform var(--fast) var(--ease);
 }
 .results li:active { transform: scale(.985); background: var(--state-press); }
-.results li[aria-selected="true"] { background: color-mix(in srgb, var(--primary) 12%, transparent); }
+.results li[aria-selected="true"] { background: var(--surface-container); }
 .results .name { flex: 1; min-width: 0; font: var(--t-body-l); }
 .results .sub { font: var(--t-body-m); color: var(--on-surface-variant); }
 .results .cnt { font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -295,25 +296,11 @@ svg { flex: none; }
 .fchip[aria-pressed="true"] { background: var(--inverse-surface); color: var(--inverse-on-surface); }
 .fchip[aria-pressed="true"] svg { color: inherit; }
 
-/* ---------- Round map buttons (layers, my location) ---------- */
-.map-btn {
-  width: var(--target); height: var(--target); border-radius: var(--r-full);
-  display: grid; place-items: center; color: var(--on-surface-variant);
-  box-shadow: var(--elev-2), inset 0 0 0 0.5px var(--glass-edge);
-}
-.map-btn.lg { width: var(--fab-size); height: var(--fab-size); }
-.map-btn svg { width: 24px; height: 24px; fill: currentColor; position: relative; z-index: 1; transition: transform var(--fast) var(--ease); }
-.map-btn::after { content: ""; position: absolute; inset: 0; border-radius: inherit; transition: background var(--fast); }
-.map-btn:active::after { background: var(--state-press); }
-.map-btn:active svg { transform: scale(.9); }
-.map-btn[aria-expanded="true"], #locate.active { color: var(--primary); }
+/* ---------- Map controls ---------- */
+.ctrl[aria-expanded="true"] { color: var(--on-surface); background: var(--surface-container); }
+#locate.active { color: var(--accent); }
 #locate.busy svg { animation: spin 1s linear infinite; }
-#layers {
-  position: fixed; z-index: 20; right: var(--edge-r);
-  top: calc(var(--chips-top) + var(--chip-h) + var(--s3));
-  animation: dropIn var(--slow) var(--ease-decel) .1s both;
-  transition: opacity var(--med), transform var(--med) var(--ease);
-}
+.map-group .ctrl, .zoom-group .ctrl { color: var(--on-surface); }
 
 /* ---------- Bottom-right stack ---------- */
 .stack {
@@ -323,7 +310,8 @@ svg { flex: none; }
   animation: riseIn var(--slow) var(--ease-decel) .12s both;
 }
 @keyframes riseIn { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
-/* Zoom buttons only where there is no pinch: mouse / trackpad devices. */
+/* Map view + my location share one capsule; zoom (mouse / trackpad only) gets its own. */
+.map-group { display: flex; flex-direction: column; border-radius: var(--r-full); overflow: hidden; box-shadow: var(--elev-2); }
 .zoom-group { display: none; flex-direction: column; border-radius: var(--r-full); overflow: hidden; box-shadow: var(--elev-2), inset 0 0 0 0.5px var(--glass-edge); }
 @media (hover: hover) and (pointer: fine) { .zoom-group { display: flex; } }
 .ctrl {
@@ -377,18 +365,18 @@ svg { flex: none; }
 body.sheet-drag .stack, body.sheet-drag .chip, body.sheet-drag .toast { transition: none; }
 /* A sheet that leaves no room above it hides the bottom row; one pulled to the top hides the top chrome too. */
 body.sheet-tall .stack, body.sheet-tall .chip { opacity: 0; transform: translateY(12px); pointer-events: none; }
-body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+body.sheet-full .chips { opacity: 0; transform: translateY(-8px); pointer-events: none; }
 
 /* ---------- Map view picker — popover from the layers button ---------- */
 .view-menu {
   position: fixed; z-index: 30;
-  right: calc(var(--edge-r) + var(--target) + var(--s2));
-  top: calc(var(--chips-top) + var(--chip-h) + var(--s3));
+  right: calc(var(--edge-r) + (var(--fab-size) + var(--target)) / 2 + var(--s2));
+  bottom: calc(var(--margin) + var(--stack-base) + var(--fab-size) + var(--s4));
   padding: var(--s4) var(--s4) var(--s2); width: 320px;
   max-width: calc(100vw - var(--edge-l) - var(--edge-r) - var(--target) - var(--s2));
   border-radius: var(--r-xl);
   background: var(--glass-bg-strong); box-shadow: var(--elev-3), inset 0 0 0 0.5px var(--glass-edge);
-  transform-origin: right top;
+  transform-origin: right bottom;
   opacity: 0; transform: translateX(8px) scale(.92);
   transition: opacity var(--fast) var(--ease), transform var(--med) var(--spring);
 }
@@ -457,30 +445,26 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 /* "Your nearest bike" — a quiet eyebrow above the title, not a coloured pill */
 .badge {
   display: flex; align-items: center; gap: 6px; margin: var(--s1) 0 2px;
-  color: var(--primary); font: var(--t-label-l);
+  color: var(--ok-text); font: var(--t-label-l);
 }
 .badge svg { width: 18px; height: 18px; fill: currentColor; }
 .badge + h2 { margin-top: 0; }
 .sheet .sub { color: var(--on-surface-variant); font: var(--t-body-m); margin: 0 0 var(--s4); }
 
 /* Stats — tonal tiles */
-/* Stats: one neutral card split by hairlines; only the bike count carries colour. */
-.stats {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
-  border: 1px solid var(--outline-variant); border-radius: var(--r-lg); margin-bottom: var(--s4); overflow: hidden;
-}
-.stat { padding: var(--s3) var(--s4); }
-.stat + .stat { border-left: 1px solid var(--outline-variant); }
-.stat .v { font: var(--t-display); font-size: 1.375rem; line-height: 1.75rem; font-variant-numeric: tabular-nums; transition: color var(--med); }
+/* Stats: open columns, no frames; only the bike count carries colour. */
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: var(--s4); margin: var(--s1) 0 var(--s5); }
+.stat { padding: 0; }
+.stat .v { font: var(--t-display); font-size: 1.5rem; line-height: 2rem; font-variant-numeric: tabular-nums; transition: color var(--med); }
 .stat .l { font: var(--t-label-m); color: var(--on-surface-variant); margin-top: 2px; }
 .stat.ok .v { color: var(--ok-text); }
 .stat.warn .v { color: var(--warn-text); }
 .stat.none .v { color: var(--on-surface-variant); }
 /* Linear progress (M3): track + indicator */
 /* Fill level: a thin bar along the bottom edge of the stats card */
-.bar { grid-column: 1 / -1; height: 3px; background: var(--surface-container-high); overflow: hidden; }
+.bar { grid-column: 1 / -1; height: 4px; margin-top: var(--s3); border-radius: 2px; background: var(--surface-container-high); overflow: hidden; }
 .bar.warn > i { background: var(--warn); } .bar.none > i { background: var(--none); }
-.bar > i { display: block; height: 100%; background: var(--ok); transition: width var(--slow) var(--ease); animation: grow var(--slow) var(--ease-decel) both; }
+.bar > i { display: block; height: 100%; border-radius: 2px; background: var(--ok); transition: width var(--slow) var(--ease); animation: grow var(--slow) var(--ease-decel) both; }
 @keyframes grow { from { transform: scaleX(0); transform-origin: left; } }
 
 /* Buttons — filled / tonal pills. Actions never scroll sideways: they share the row
@@ -494,7 +478,7 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
   display: inline-flex; align-items: center; justify-content: center; gap: var(--s2);
   min-height: 44px; padding: var(--s2) var(--s5) var(--s2) var(--s4); border-radius: var(--r-full);
   font: var(--t-label-l); font-size: 0.875rem; text-align: center; white-space: nowrap;
-  background: transparent; color: var(--on-surface); box-shadow: inset 0 0 0 1px var(--outline-variant);
+  background: var(--tonal); color: var(--on-tonal);
   transition: transform var(--fast) var(--ease), background var(--med), box-shadow var(--med);
 }
 .btn::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: transparent; transition: background var(--fast); pointer-events: none; }
@@ -502,7 +486,7 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 .btn:active::after { background: var(--state-press); }
 .btn:hover { text-decoration: none; }
 .btn.primary { background: var(--primary); color: var(--on-primary); box-shadow: none; }
-.btn:not(.primary) svg { color: var(--primary); }
+.btn:not(.primary) svg { color: var(--on-surface-variant); }
 .btn svg { width: 18px; height: 18px; fill: currentColor; position: relative; z-index: 1; }
 
 .route-summary { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--s1) var(--s3); margin: 0 0 var(--s3); }
@@ -565,7 +549,7 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 
 .me-dot {
   width: 18px; height: 18px; border-radius: 50%;
-  background: #1a73e8;
+  background: #2563eb;
   box-shadow: 0 0 0 3px #fff, 0 2px 8px rgba(0,0,0,.35);
   position: relative; pointer-events: none;
   animation: pinPop var(--slow) var(--spring);
@@ -573,7 +557,7 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 .me-wrap { width: 18px; height: 18px; pointer-events: none; }
 .me-dot::before {
   content: ""; position: absolute; inset: -14px; border-radius: 50%;
-  background: #1a73e8; opacity: .25; animation: ping 2.4s ease-out infinite;
+  background: #2563eb; opacity: .22; animation: ping 2.4s ease-out infinite;
 }
 @keyframes selectPulse { 0%, 100% { outline: 0 solid transparent; } 50% { outline: 6px solid color-mix(in srgb, var(--primary) 20%, transparent); } }
 @keyframes ping { 0% { transform: scale(.5); opacity: .4; } 100% { transform: scale(1.4); opacity: 0; } }
@@ -603,7 +587,7 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 .trip-row > div { min-width: 0; }
 .trip-row .station-pin { width: 32px; height: 32px; font-size: 12px; flex: none; }
 .trip-row .station-pin::after { display: none; }
-.station-pin.dock { --c: var(--primary); }
+.station-pin.dock { --c: var(--accent); }
 .station-pin.dash { --c: var(--outline); color: var(--on-surface-variant); box-shadow: inset 0 0 0 2px var(--c); background: transparent; }
 .trip-name { font: var(--t-title-m); }
 .trip-name.dim { color: var(--on-surface-variant); font-weight: 500; }
@@ -648,15 +632,15 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 @media (min-width: 600px) {
   :root { --stack-base: var(--sab); }
   .search { right: auto; width: var(--panel-w); }
-  /* Chips continue the top row to the right of the search bar; layers sits at the top-right. */
+  /* Chips continue the top row to the right of the search bar. */
   .chips {
     top: calc(var(--edge-t) + (var(--bar-h) - var(--chip-h)) / 2);
     left: calc(var(--edge-l) + var(--panel-w) + var(--s3));
-    right: calc(var(--edge-r) + var(--target) + var(--s3));
+    right: var(--edge-r);
   }
-  #layers, .view-menu { top: calc(var(--edge-t) + (var(--bar-h) - var(--target)) / 2); }
+  .view-menu { bottom: calc(var(--margin) + var(--sab) + var(--fab-size) + var(--s4)); }
   .chip { bottom: calc(var(--margin) + var(--sab)); }
-  body.sheet-tall .stack, body.sheet-tall .chip, body.sheet-full .chips, body.sheet-full #layers { opacity: 1; transform: none; pointer-events: auto; }
+  body.sheet-tall .stack, body.sheet-tall .chip, body.sheet-full .chips { opacity: 1; transform: none; pointer-events: auto; }
   .sheet {
     left: var(--edge-l); right: auto; bottom: auto;
     top: calc(var(--edge-t) + var(--bar-h) + var(--s3));
@@ -697,7 +681,7 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 
 /* Pointer devices with hover: hover state layers (never shown on touch, where they stick). */
 @media (hover: hover) and (pointer: fine) {
-  .icon-btn:hover::after, .ctrl:hover, .map-btn:hover::after, .fchip:hover::after, .menu-item:hover { background: var(--state-hover); }
+  .icon-btn:hover::after, .ctrl:hover, .fchip:hover::after, .menu-item:hover { background: var(--state-hover); }
   .results li:not(.hdr):not(.empty):hover, .near li:hover { background: var(--state-hover); }
   .btn:hover::after, .fab:hover::after { background: var(--state-hover); }
   .view-opt:hover .thumb { transform: scale(1.05) translateY(-2px); }

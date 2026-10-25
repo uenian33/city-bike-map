@@ -75,9 +75,9 @@
   // Below this zoom stations are drawn by the GPU (circle + text layers); above it the
   // stations inside the viewport become HTML "glass" pins. Both are cheap.
   const PIN_ZOOM = 14;
-  // Google Maps palette: green / yellow / grey availability, blue for the user and walking.
-  const LEVEL_COLOR = ['match', ['get', 'level'], 'ok', '#1e8e3e', 'warn', '#f29900', '#80868b'];
-  const BLUE = '#1a73e8', GREEN = '#1e8e3e';
+  // Availability in muted green / amber / grey; blue only for the user and walking.
+  const LEVEL_COLOR = ['match', ['get', 'level'], 'ok', '#1f9d55', 'warn', '#e8930c', '#a1a1aa'];
+  const BLUE = '#2563eb', GREEN = '#1f9d55';
   function addOverlays() {
     if (map.getSource('route')) return;
     const isDark = isDarkMap();
@@ -87,7 +87,7 @@
       id: 'st-circle', type: 'circle', source: 'stations', maxzoom: PIN_ZOOM,
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 4, 11, 7, 13, 11, PIN_ZOOM, 13],
-        'circle-color': isDark ? '#1f1f1f' : '#ffffff',
+        'circle-color': isDark ? '#232326' : '#ffffff',
         'circle-stroke-color': LEVEL_COLOR,
         'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, 1.5, 12, 2],
         'circle-opacity': 0.95,
@@ -110,7 +110,7 @@
         'text-size': ['interpolate', ['linear'], ['zoom'], 11, 8, 13, 11, PIN_ZOOM, 12],
         'text-allow-overlap': true, 'text-ignore-placement': true,
       },
-      paint: { 'text-color': ['case', ['==', ['get', 'level'], 'none'], '#80868b', isDark ? '#e3e3e3' : '#1f1f1f'] },
+      paint: { 'text-color': ['case', ['==', ['get', 'level'], 'none'], '#a1a1aa', isDark ? '#f4f4f5' : '#18181b'] },
     });
     map.addSource('route', { type: 'geojson', data: routeGeo });
     map.addSource('me-acc', { type: 'geojson', data: accGeo });
@@ -119,7 +119,7 @@
     // Google Maps route styling: cycling is a solid line with a casing, walking a trail of blue dots.
     const bikeOnly = ['==', ['get', 'mode'], 'bike'];
     map.addLayer({ id: 'route-casing', type: 'line', source: 'route', filter: bikeOnly, layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': isDark ? '#0b5b23' : '#137333', 'line-width': 9 } });
+      paint: { 'line-color': isDark ? '#14532d' : '#17824a', 'line-width': 9 } });
     map.addLayer({ id: 'route-line', type: 'line', source: 'route', filter: bikeOnly, layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': GREEN, 'line-width': 6 } });
     map.addLayer({ id: 'route-walk', type: 'line', source: 'route', filter: ['!', bikeOnly], layout: { 'line-cap': 'round', 'line-join': 'round' },
@@ -364,7 +364,7 @@
   // the edge stay fully visible.
   function viewPadding() {
     const PIN = 28, r = (n) => n.getBoundingClientRect();
-    const top = Math.max(r(el.searchBar).bottom, r(el.chips).bottom, isWide() ? 0 : r(el.layers).bottom);
+    const top = Math.max(r(el.searchBar).bottom, r(el.chips).bottom);
     const left = isWide() && !el.sheet.hidden ? r(el.sheet).right : 0;
     const right = isWide() ? innerWidth - r(el.stack).left : 0;
     const bottom = innerHeight - (isWide() ? r(el.chip).top : r(el.nearest).top);
@@ -461,11 +461,11 @@
       h = Math.max(0, el.sheet.offsetHeight - ty);
     }
     document.documentElement.style.setProperty('--sheet-h', `${Math.round(h)}px`);
-    // The location button and FAB float above the sheet only while they fit below the
-    // layers button; a sheet that reaches the top chrome hides that too.
-    const topChrome = el.layers.getBoundingClientRect().bottom;
+    // The map controls and FAB float above the sheet only while they fit below the
+    // filter chips; a sheet that reaches the top chrome hides that too.
+    const topChrome = el.chips.getBoundingClientRect().bottom;
     const room = innerHeight - h - topChrome;
-    const STACK_ROOM = 56 + 16 + 56 + 32; // location + gap + FAB + margins
+    const STACK_ROOM = 96 + 16 + 56 + 32; // map-view/location capsule + gap + FAB + margins
     document.body.classList.toggle('sheet-tall', h > 0 && room < STACK_ROOM);
     document.body.classList.toggle('sheet-full', h > 0 && room < 8);
     document.body.classList.toggle('sheet-open', h > 0);
