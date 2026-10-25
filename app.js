@@ -16,7 +16,7 @@
     chip: $('status-chip'), statusText: $('status-text'), liveDot: $('live-dot'),
     sheet: $('sheet'), sheetBody: $('sheet-body'), sheetClose: $('sheet-close'),
     locate: $('locate'), nearest: $('nearest-btn'), fitAll: $('fit-all'),
-    zoomIn: $('zoom-in'), zoomOut: $('zoom-out'), about: $('about'), menu: $('menu-btn'),
+    about: $('about'), menu: $('menu-btn'),
     searchBar: $('search'), chips: $('chips'), layers: $('layers'), stack: $('stack'),
   };
 
@@ -367,8 +367,8 @@
     const PIN = 28, r = (n) => n.getBoundingClientRect();
     const top = Math.max(r(el.searchBar).bottom, r(el.chips).bottom);
     const left = isWide() && !el.sheet.hidden ? r(el.sheet).right : 0;
-    const right = isWide() ? innerWidth - r(el.stack).left : 0;
-    const bottom = innerHeight - (isWide() ? r(el.chip).top : r(el.nearest).top);
+    const right = 0;
+    const bottom = innerHeight - Math.min(r(el.nearest).top, r(el.chip).top);
     return { top: Math.round(top + PIN), left: Math.round(left + PIN), right: Math.round(right + PIN), bottom: Math.round(bottom + PIN / 2) };
   }
   // Centre on the user at a zoom that shows at least NEARBY_COUNT stations. Returns false when
@@ -466,7 +466,7 @@
     // filter chips; a sheet that reaches the top chrome hides that too.
     const topChrome = el.chips.getBoundingClientRect().bottom;
     const room = innerHeight - h - topChrome;
-    const STACK_ROOM = 96 + 16 + 56 + 32; // map-view/location capsule + gap + FAB + margins
+    const STACK_ROOM = 56 + 12 + 32 + 32; // FAB row + status pill + margins
     document.body.classList.toggle('sheet-tall', h > 0 && room < STACK_ROOM);
     document.body.classList.toggle('sheet-full', h > 0 && room < 8);
     document.body.classList.toggle('sheet-open', h > 0);
@@ -1071,8 +1071,6 @@
     el.chips.querySelectorAll('[data-filter]').forEach((x) => x.setAttribute('aria-pressed', x.dataset.filter === filter));
     renderStations();
   }));
-  el.zoomIn.addEventListener('click', () => map.zoomIn());
-  el.zoomOut.addEventListener('click', () => map.zoomOut());
   el.fitAll.addEventListener('click', () => { setOpen($('view-menu'), false); fitAll(true); });
   el.menu.addEventListener('click', () => el.about.showModal());
   el.about.addEventListener('click', (e) => { if (e.target === el.about) el.about.close(); });

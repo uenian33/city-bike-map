@@ -52,32 +52,25 @@
     </button>
   </nav>
 
+  <!-- Map view, top-right on the chip row -->
+  <button class="glass ctrl round" id="layers" aria-label="Map view" title="Map view" aria-haspopup="menu" aria-controls="view-menu" aria-expanded="false">
+    <svg viewBox="0 0 24 24"><path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/></svg>
+  </button>
+
   <!-- Live status, bottom-left -->
   <div class="glass chip" id="status-chip" aria-live="polite">
     <span class="dot dot-live" id="live-dot"></span>
     <span id="status-text">Loading stations…</span>
   </div>
 
-  <!-- Bottom-right stack: zoom (mouse only), map view + my location, directions FAB -->
-  <div class="stack" id="stack">
-    <div class="glass zoom-group" role="group" aria-label="Zoom">
-      <button class="ctrl" id="zoom-in" aria-label="Zoom in" title="Zoom in">
-        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-      </button>
-      <button class="ctrl" id="zoom-out" aria-label="Zoom out" title="Zoom out">
-        <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
-      </button>
-    </div>
-<div class="glass map-group" role="group" aria-label="Map">
-      <button class="ctrl" id="layers" aria-label="Map view" title="Map view" aria-haspopup="menu" aria-controls="view-menu" aria-expanded="false">
-    <svg viewBox="0 0 24 24"><path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/></svg>
+  <!-- Bottom row: the primary action in the middle, my location at the right -->
+  <button class="fab" id="nearest-btn" title="Walking route to the nearest station with a bike">
+    <svg viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9a.996.996 0 0 0-1.41 0l-9 9a.996.996 0 0 0 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9a.996.996 0 0 0 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
+    <span>Your nearest station</span>
   </button>
-          <button class="ctrl" id="locate" aria-label="My location" title="My location">
+  <div class="stack" id="stack">
+    <button class="glass ctrl round" id="locate" aria-label="My location" title="My location">
       <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
-    </button>
-    </div>
-    <button class="fab" id="nearest-btn" aria-label="Directions to the nearest bike" title="Directions to the nearest bike">
-      <svg viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9a.996.996 0 0 0-1.41 0l-9 9a.996.996 0 0 0 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9a.996.996 0 0 0 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
     </button>
   </div>
 
@@ -114,7 +107,7 @@
       <li><b>Pin colour</b> — teal: plenty, orange: a few, grey: none.</li>
       <li><b>Search</b> — station names, plus streets, addresses and places (e.g. "EMMA") via Photon / OpenStreetMap.</li>
       <li><b>Filters</b> — show only stations with bikes, or with free docks.</li>
-      <li><b>Blue button</b> (bottom right) — walking route from you to the closest station with a bike, via Valhalla / OpenStreetMap.</li>
+      <li><b>Your nearest station</b> (bottom) — walking route from you to the closest station with a bike, via Valhalla / OpenStreetMap.</li>
     </ul>
     <p class="fine">Places: <a href="https://photon.komoot.io" target="_blank" rel="noopener">Photon</a>. Satellite imagery © Esri. Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, tiles by <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>. Not affiliated with HSL.</p>
     <form method="dialog"><button class="btn">Done</button></form>

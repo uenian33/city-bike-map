@@ -16,14 +16,15 @@ with live bike counts, your position, and a walking route to the nearest bike.
   centres on you at a zoom that keeps at least the three nearest stations in
   view (unless you have already started panning or opened a station). The
   **My location** button re-frames the same way.
-- Layout follows the Google Maps app: search bar on top with filter chips
-  under it (**Bikes available**, **Free docks**), the Map view button at the
-  top right ("Show all stations" lives in its menu), and at the bottom right
-  the My location button above the blue directions FAB (zoom buttons only on
-  mouse devices). Live status sits at the bottom left. On phones the bottom
-  row rides on top of the sheet; on wider screens the chips continue the top
-  row beside the search bar. A place's actions form one row under its title.
-- **Nearest bike** finds the closest station that actually has a bike and
+- Layout after the Google Maps app: search bar on top with filter chips
+  under it (**Bikes available**, **Free docks**) and the Map view button at
+  the right end of that row ("Show all stations" lives in its menu). At the
+  bottom, the yellow **Your nearest station** button sits in the middle with
+  My location to its right and the live status just above. No zoom buttons:
+  pinch, scroll or double-tap. While a phone's bottom sheet is open the bottom
+  controls step aside; on wider screens the chips continue the top row beside
+  the search bar. A station's actions sit under its title, Ride from here first.
+- **Your nearest station** finds the closest station that actually has a bike and
   draws a walking route with turn-by-turn steps and an ETA.
 - **Search** matches station names and, via Photon (OpenStreetMap), streets,
   addresses and places — typing "emma" suggests EMMA, the Espoo Museum of

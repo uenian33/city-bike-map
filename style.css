@@ -267,12 +267,12 @@ svg { flex: none; }
 
 /* ==========================================================================
    Map chrome — laid out after the Google Maps app:
-   top: search bar, filter chips under it, layers button at the top-right;
-   bottom-right: (zoom on mouse devices), my-location, directions FAB;
-   bottom-left: live status. On phones the bottom row rides on top of the sheet.
+   top: search bar, filter chips under it with the map-view button at the row's right end;
+   bottom: the "Your nearest station" button centred, my location at the right, live status
+   just above on the left. All of it steps aside while a phone's bottom sheet is open.
    ========================================================================== */
 :root {
-  --chip-h: 36px;
+  --chip-h: 40px;
   --chips-top: calc(var(--edge-t) + var(--bar-h) + var(--s2));
   --fab-size: 56px;
 }
@@ -280,7 +280,7 @@ svg { flex: none; }
 /* ---------- Filter chips (M3 filter chip, Google Maps category row) ---------- */
 .chips {
   position: fixed; z-index: 20;
-  top: var(--chips-top); left: var(--edge-l); right: var(--edge-r);
+  top: var(--chips-top); left: var(--edge-l); right: calc(var(--edge-r) + var(--chip-h) + var(--s2));
   display: flex; gap: var(--s2); padding: 4px 2px 8px; margin: -4px -2px -8px;
   overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain;
   pointer-events: none; /* the gaps belong to the map */
@@ -302,57 +302,73 @@ svg { flex: none; }
 .fchip[aria-pressed="true"] svg { color: inherit; }
 
 /* ---------- Map controls ---------- */
-.ctrl[aria-expanded="true"] { color: var(--on-surface); background: var(--surface-container); }
+.ctrl {
+  width: var(--target); height: var(--target); display: grid; place-items: center; color: var(--on-surface);
+  position: relative; transition: background var(--fast), color var(--med);
+}
+.ctrl.round { border-radius: var(--r-full); box-shadow: var(--elev-2); }
+.ctrl::after { content: ""; position: absolute; inset: 0; border-radius: inherit; transition: background var(--fast); }
+.ctrl:active::after { background: var(--state-press); }
+.ctrl:focus-visible { outline-offset: 2px; }
+.ctrl svg { width: 24px; height: 24px; fill: currentColor; position: relative; z-index: 1; }
+.ctrl[aria-expanded="true"] { background: var(--surface-container); }
 #locate.active { color: var(--accent); }
 #locate.busy svg { animation: spin 1s linear infinite; }
-.map-group .ctrl, .zoom-group .ctrl { color: var(--on-surface); }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes riseIn { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
 
-/* ---------- Bottom-right stack ---------- */
+/* Map view: a round button closing the chip row on the right */
+#layers {
+  position: fixed; z-index: 20; right: var(--edge-r); top: var(--chips-top);
+  width: var(--chip-h); height: var(--chip-h);
+  animation: dropIn var(--slow) var(--ease-decel) .08s backwards;
+  transition: opacity var(--med), transform var(--med) var(--ease);
+}
+#layers svg { width: 22px; height: 22px; }
+
+/* My location, bottom-right, centred on the FAB row */
 .stack {
-  position: fixed; z-index: 20; right: var(--edge-r); bottom: calc(var(--margin) + var(--stack-base));
-  display: flex; flex-direction: column; align-items: center; gap: var(--s4);
+  position: fixed; z-index: 20; right: var(--edge-r);
+  bottom: calc(var(--margin) + var(--stack-base) + (var(--fab-size) - var(--target)) / 2);
   transition: bottom var(--slow) var(--spring), opacity var(--med), transform var(--med) var(--ease);
   animation: riseIn var(--slow) var(--ease-decel) .12s backwards;
 }
-@keyframes riseIn { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
-/* Map view + my location share one capsule; zoom (mouse / trackpad only) gets its own. */
-.map-group { display: flex; flex-direction: column; border-radius: var(--r-full); overflow: hidden; box-shadow: var(--elev-2); }
-.zoom-group { display: none; flex-direction: column; border-radius: var(--r-full); overflow: hidden; box-shadow: var(--elev-2), inset 0 0 0 0.5px var(--glass-edge); }
-@media (hover: hover) and (pointer: fine) { .zoom-group { display: flex; } }
-.ctrl {
-  width: var(--target); height: var(--target); display: grid; place-items: center; color: var(--on-surface-variant);
-  position: relative; transition: background var(--fast), color var(--med);
-}
-.ctrl + .ctrl::before { content: ""; position: absolute; top: 0; left: 12px; right: 12px; height: 1px; background: var(--outline-variant); }
-.ctrl:active { background: var(--state-press); }
-.ctrl:focus-visible { outline-offset: -3px; border-radius: var(--r-full); }
-.ctrl svg { width: 24px; height: 24px; fill: currentColor; }
-@keyframes spin { to { transform: rotate(360deg); } }
 
-/* Directions FAB (M3 FAB, 56px, large corner) */
+/* "Your nearest station" — extended FAB centred at the bottom */
 .fab {
-  position: relative; display: grid; place-items: center;
-  width: var(--fab-size); height: var(--fab-size); border-radius: var(--r-lg);
+  position: fixed; z-index: 20; left: 0; right: 0; margin-inline: auto; width: max-content;
+  max-width: calc(100vw - 2 * (var(--edge-r) + var(--target) + var(--s3)));
+  bottom: calc(var(--margin) + var(--stack-base));
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s3);
+  height: var(--fab-size); padding: 0 var(--s6) 0 var(--s5); border-radius: var(--r-full);
+  font: var(--t-title-m); white-space: nowrap;
   background: var(--primary); color: var(--on-primary);
   box-shadow: var(--elev-3);
-  transition: transform var(--med) var(--spring), box-shadow var(--med) var(--ease);
+  transition: transform var(--med) var(--spring), box-shadow var(--med) var(--ease), bottom var(--slow) var(--spring), opacity var(--med);
+  animation: riseIn var(--slow) var(--ease-decel) .14s backwards;
+}
+.fab span { overflow: hidden; text-overflow: ellipsis; }
+/* Narrow phones: centring would squeeze the label, so start it at the left margin instead. */
+@media (max-width: 379px) {
+  .fab { left: var(--edge-l); right: auto; margin: 0; max-width: calc(100vw - var(--edge-l) - var(--edge-r) - var(--target) - var(--s3));
+         padding: 0 var(--s4) 0 var(--s4); gap: var(--s2); font-size: 0.9375rem; }
 }
 .fab::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: transparent; transition: background var(--fast); }
-.fab:active { transform: scale(0.94); }
+.fab:active { transform: scale(0.96); }
 .fab:active::after { background: var(--state-press); }
-.fab svg { width: 26px; height: 26px; fill: currentColor; position: relative; z-index: 1; }
+.fab svg { width: 24px; height: 24px; fill: currentColor; position: relative; z-index: 1; }
 .fab.busy { pointer-events: none; opacity: .85; }
 .fab.busy svg { animation: spin 1s linear infinite; }
 
 /* ---------- Live status, bottom-left ---------- */
 .chip {
   position: fixed; z-index: 15;
-  left: var(--edge-l); bottom: calc(var(--margin) + var(--stack-base) + (var(--fab-size) - 32px) / 2);
+  left: var(--edge-l); bottom: calc(var(--margin) + var(--stack-base) + var(--fab-size) + var(--s3));
   display: inline-flex; align-items: center; gap: var(--s2);
   height: 32px; padding: 0 var(--s3); border-radius: var(--r-full);
   font: var(--t-label-m); color: var(--on-surface-variant);
   font-variant-numeric: tabular-nums; white-space: nowrap;
-  max-width: calc(100vw - var(--edge-l) - var(--edge-r) - var(--fab-size) - var(--s3)); overflow: hidden; text-overflow: ellipsis;
+  max-width: calc(100vw - var(--edge-l) - var(--edge-r) - var(--target) - var(--s3)); overflow: hidden; text-overflow: ellipsis;
   user-select: none; -webkit-user-select: none;
   box-shadow: var(--elev-1), inset 0 0 0 0.5px var(--glass-edge);
   animation: riseIn var(--slow) var(--ease-decel) .16s backwards;
@@ -368,23 +384,23 @@ svg { flex: none; }
 @keyframes pulse { 0% { transform: scale(1); opacity: .6; } 100% { transform: scale(3); opacity: 0; } }
 
 /* While the sheet is dragged the bottom row follows the finger 1:1. */
-body.sheet-drag .stack, body.sheet-drag .chip, body.sheet-drag .toast { transition: none; }
+body.sheet-drag .stack, body.sheet-drag .fab, body.sheet-drag .chip, body.sheet-drag .toast { transition: none; }
 /* With a bottom sheet open the map belongs to the station: the floating buttons and status
    step aside (closing the sheet brings them back). One pulled to the top hides the top chrome too. */
-body.sheet-open .stack, body.sheet-open .chip { opacity: 0; transform: translateY(12px); pointer-events: none; }
-body.sheet-full .chips { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+body.sheet-open .stack, body.sheet-open .fab, body.sheet-open .chip { opacity: 0; transform: translateY(12px); pointer-events: none; }
+body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: translateY(-8px); pointer-events: none; }
 
-/* ---------- Map view picker — popover from the layers button ---------- */
+/* ---------- Map view picker — drops down from the map-view button ---------- */
 .view-menu {
   position: fixed; z-index: 30;
-  right: calc(var(--edge-r) + (var(--fab-size) + var(--target)) / 2 + var(--s2));
-  bottom: calc(var(--margin) + var(--stack-base) + var(--fab-size) + var(--s4));
+  right: var(--edge-r);
+  top: calc(var(--chips-top) + var(--chip-h) + var(--s2));
   padding: var(--s4) var(--s4) var(--s2); width: 320px;
-  max-width: calc(100vw - var(--edge-l) - var(--edge-r) - var(--target) - var(--s2));
+  max-width: calc(100vw - var(--edge-l) - var(--edge-r));
   border-radius: var(--r-xl);
   background: var(--glass-bg-strong); box-shadow: var(--elev-3), inset 0 0 0 0.5px var(--glass-edge);
-  transform-origin: right bottom;
-  opacity: 0; transform: translateX(8px) scale(.92);
+  transform-origin: right top;
+  opacity: 0; transform: translateY(-8px) scale(.94);
   transition: opacity var(--fast) var(--ease), transform var(--med) var(--spring);
 }
 .view-menu.open { opacity: 1; transform: none; }
@@ -619,8 +635,8 @@ body.sheet-full .chips { opacity: 0; transform: translateY(-8px); pointer-events
 /* ---------- Snackbar (M3) / banner ---------- */
 .toast {
   position: fixed; z-index: 40;
-  left: var(--edge-l); right: calc(var(--edge-r) + var(--fab-size) + var(--s3));
-  bottom: calc(var(--margin) + var(--fab-size) + var(--s4) + var(--stack-base));
+  left: var(--edge-l); right: var(--edge-r);
+  bottom: calc(var(--margin) + var(--fab-size) + var(--s3) + 32px + var(--s3) + var(--stack-base));
   min-height: var(--target); display: flex; align-items: center;
   padding: var(--s3) var(--s4); border-radius: var(--r-md);
   font: var(--t-body-m);
@@ -643,11 +659,14 @@ body.sheet-full .chips { opacity: 0; transform: translateY(-8px); pointer-events
   .chips {
     top: calc(var(--edge-t) + (var(--bar-h) - var(--chip-h)) / 2);
     left: calc(var(--edge-l) + var(--panel-w) + var(--s3));
-    right: var(--edge-r);
+    right: calc(var(--edge-r) + var(--chip-h) + var(--s3));
   }
-  .view-menu { bottom: calc(var(--margin) + var(--sab) + var(--fab-size) + var(--s4)); }
-  .chip { bottom: calc(var(--margin) + var(--sab)); }
-  body.sheet-open .stack, body.sheet-open .chip, body.sheet-full .chips { opacity: 1; transform: none; pointer-events: auto; }
+  #layers { top: calc(var(--edge-t) + (var(--bar-h) - var(--chip-h)) / 2); }
+  .view-menu { top: calc(var(--edge-t) + (var(--bar-h) + var(--chip-h)) / 2 + var(--s2)); }
+  /* One bottom row: status at the left, then the primary action beside my location. */
+  .chip { bottom: calc(var(--margin) + var(--sab) + (var(--fab-size) - 32px) / 2); }
+  .fab { left: auto; right: calc(var(--edge-r) + var(--target) + var(--s3)); margin: 0; max-width: none; }
+  body.sheet-open .stack, body.sheet-open .fab, body.sheet-open .chip, body.sheet-full .chips, body.sheet-full #layers { opacity: 1; transform: none; pointer-events: auto; }
   .sheet {
     left: var(--edge-l); right: auto; bottom: auto;
     top: calc(var(--edge-t) + var(--bar-h) + var(--s3));
@@ -678,17 +697,13 @@ body.sheet-full .chips { opacity: 0; transform: translateY(-8px); pointer-events
 }
 
 /* Short viewports (landscape phones, split-screen): give the map back its height. */
-@media (max-height: 500px) {
-  .stack { gap: var(--s3); }
-  .zoom-group { display: none; }
-}
 @media (max-height: 500px) and (min-width: 600px) {
   :root { --edge-t: calc(var(--s3) + var(--sat)); --margin: 16px; }
 }
 
 /* Pointer devices with hover: hover state layers (never shown on touch, where they stick). */
 @media (hover: hover) and (pointer: fine) {
-  .icon-btn:hover::after, .ctrl:hover, .fchip:hover::after, .menu-item:hover { background: var(--state-hover); }
+  .icon-btn:hover::after, .ctrl:hover::after, .fchip:hover::after, .menu-item:hover { background: var(--state-hover); }
   .results li:not(.hdr):not(.empty):hover, .near li:hover { background: var(--state-hover); }
   .btn:hover::after, .fab:hover::after { background: var(--state-hover); }
   .view-opt:hover .thumb { transform: scale(1.05) translateY(-2px); }
