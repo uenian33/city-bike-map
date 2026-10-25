@@ -53,7 +53,7 @@
     satellite: { label: 'Satellite', style: () => SATELLITE_STYLE, dark: () => true },
     dark: { label: 'Dark', style: () => OFM + 'dark', dark: () => true },
   };
-  let view = 'auto';
+  let view = 'detailed'; // default; a choice made in the Map view menu is remembered
   try { if (VIEWS[localStorage.getItem('cbm-view')]) view = localStorage.getItem('cbm-view'); } catch {}
   const isDarkMap = () => VIEWS[view].dark();
   const styleUrl = () => VIEWS[view].style();
@@ -125,7 +125,30 @@
     map.addLayer({ id: 'route-walk', type: 'line', source: 'route', filter: ['!', bikeOnly], layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': BLUE, 'line-width': 6, 'line-dasharray': [0, 1.8] } });
   }
-  map.on('style.load', addOverlays);
+  // The stock Detailed (OpenFreeMap Liberty) style paints major roads yellow / orange and
+  // sprinkles shop and health icons everywhere, which competes with the yellow UI and the
+  // availability pins. Calm it down: neutral roads, quieter land and water, no POI icons.
+  const CALM_ROADS = new Set(['#fea', '#fc8', '#fff4c6', '#ffdaa6']);
+  function calmDetailed() {
+    if (view !== 'detailed') return;
+    const set = (id, prop, v) => { try { map.setPaintProperty(id, prop, v); } catch {} };
+    for (const l of map.getStyle().layers) {
+      const { id, type } = l;
+      if (/^poi_r\d+$/.test(id)) map.setLayoutProperty(id, 'visibility', 'none');
+      else if (id === 'poi_transit') { set(id, 'icon-opacity', 0.6); set(id, 'text-opacity', 0.7); }
+      else if (type === 'line' && /casing/.test(id) && map.getPaintProperty(id, 'line-color') === '#e9ac77') set(id, 'line-color', '#d9d5ce');
+      else if (type === 'line' && (CALM_ROADS.has(map.getPaintProperty(id, 'line-color')) || id === 'road_motorway')) set(id, 'line-color', '#ffffff');
+    }
+    set('background', 'background-color', '#eeece8');
+    set('building', 'fill-color', '#e1ded9');
+    set('building-3d', 'fill-extrusion-color', '#e1ded9');
+    set('landuse_residential', 'fill-color', 'rgba(232, 229, 224, 0.5)');
+    set('park', 'fill-color', '#d9e6cf');
+    set('landcover_grass', 'fill-color', '#d3e3c8');
+    set('landcover_wood', 'fill-color', 'rgba(196, 220, 180, 0.7)');
+    set('water', 'fill-color', '#b9d3ee');
+  }
+  map.on('style.load', () => { calmDetailed(); addOverlays(); });
   // Layer-scoped handlers are looked up by id at event time, so they survive setStyle().
   map.on('click', 'st-circle', (e) => {
     const f = e.features?.[0]; if (!f) return;
@@ -557,7 +580,7 @@
     const dist = me ? fmtDist(haversine(me, s)) + ' away' : '';
     const status = !s.renting ? 'Station closed' : s.bikes === 0 ? 'No bikes right now' : s.bikes <= 3 ? 'Only a few bikes left' : 'Bikes available';
     const route = currentRoute && currentRoute.toId === s.id ? currentRoute : null;
-    // Taking a bike from this station is the main thing to do here; when it has none, getting there is.
+    // Ride from here and Directions share the top row; Ride drops its colour when the station is empty.
     const canRide = s.renting && s.bikes > 0;
     const appleUrl = `https://maps.apple.com/?daddr=${s.lat},${s.lon}&dirflg=w`;
     const gUrl = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}&travelmode=walking`;
@@ -566,15 +589,15 @@
       <h2>${esc(s.name)}</h2>
       <p class="sub">${route ? `Closest station with a bike to you · ${fmtDist(route.distance)} walk` : `${esc(status)}${dist ? ' · ' + dist : ''}`}</p>
       <div class="actions">
-        <button class="btn${canRide ? ' primary' : ''}" id="ride-btn" ${canRide ? '' : 'title="No bikes here right now"'}>
+        <button class="btn ${canRide ? 'primary' : 'muted'} lead" id="ride-btn" ${canRide ? '' : 'title="No bikes here right now"'}>
           <svg viewBox="0 0 24 24"><path d="M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10 2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z"/></svg>
           Ride from here
         </button>
-        <button class="btn${canRide ? '' : ' primary'}" id="dir-btn">
+        <button class="btn walk lead" id="dir-btn">
           <svg viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9a.996.996 0 0 0-1.41 0l-9 9a.996.996 0 0 0 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9a.996.996 0 0 0 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
           Directions
         </button>
-        <a class="btn" href="${/iPhone|iPad|Macintosh/.test(navigator.userAgent) ? appleUrl : gUrl}" target="_blank" rel="noopener">
+        <a class="btn wide" href="${/iPhone|iPad|Macintosh/.test(navigator.userAgent) ? appleUrl : gUrl}" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
           Open in Maps</a>
       </div>

@@ -24,7 +24,8 @@ with live bike counts, your position, and a walking route to the nearest bike.
   menu). The location icon turns orange-yellow once your position is known. No zoom buttons:
   pinch, scroll or double-tap. While a phone's bottom sheet is open the bottom
   controls step aside; on wider screens the chips continue the top row beside
-  the search bar. A station's actions sit under its title, Ride from here first.
+  the search bar. A station's actions sit under its title: Ride from here (yellow) and
+  Directions (blue) side by side, Open in Maps below.
 - **Your nearest station** finds the closest station that actually has a bike and
   draws a walking route with turn-by-turn steps and an ETA.
 - **Search** matches station names and, via Photon (OpenStreetMap), streets,
@@ -42,7 +43,9 @@ with live bike counts, your position, and a walking route to the nearest bike.
 - **Ride from here** plans a cycling route between two stations (Valhalla
   bicycle profile tuned for city bikes), shows the ride time against HSL's
   free 30-minute limit, and warns when the destination has no free docks.
-- **Map view** switcher: Standard (follows light/dark), Detailed, Satellite
+- **Map view** switcher: Detailed (default; OpenFreeMap Liberty, calmed at
+  runtime — neutral roads, no shop / health icons, softer land and water),
+  Standard (follows light/dark), Satellite
   (Esri World Imagery), Dark. Remembered across visits.
 - Refreshes every 60 s and whenever the tab becomes visible again.
 - Responsive, following Material 3 window-size classes: a bottom sheet you
