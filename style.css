@@ -16,7 +16,7 @@
 :root {
   /* Color — light. HSL city-bike yellow is the one brand colour (primary action, FAB,
      selected filters) on warm off-white surfaces. Otherwise colour only carries meaning:
-     availability (green / orange / grey) and the user's location (blue). */
+     availability (teal / orange / grey) and the user's location (blue). */
   --primary: #fcbc19;              /* city-bike yellow; dark text on it 9.7:1 */
   --on-primary: #1f1f1f;
   --primary-container: #fff3d1;
@@ -38,9 +38,9 @@
   --inverse-on-surface: #fbf9f4;
   --scrim: rgba(20, 18, 14, 0.32);
 
-  /* Status — fills (pins, dots, bars) and accessible text tones. "Few bikes" is orange,
-     clearly apart from the brand yellow. */
-  --ok: #1f9d55;      --ok-text: #17824a;     --ok-container: #ecf7f0;
+  /* Status — fills (pins, dots, bars) and accessible text tones. Teal for "bikes here"
+     complements the warm yellow / orange; "few bikes" is orange, clear of the brand yellow. */
+  --ok: #13958c;      --ok-text: #0f766e;     --ok-container: #e8f5f3;
   --warn: #ec7a1c;    --warn-text: #b4530a;   --warn-container: #fdf0e6;
   --none: #a39e93;
   --error: #c0392b;   --error-container: #fbeceb;
@@ -127,7 +127,7 @@
     --inverse-surface: #f3f1ec;
     --inverse-on-surface: #1d1c1a;
     --scrim: rgba(0, 0, 0, 0.55);
-    --ok: #4cc382;  --ok-text: #5cc58a;  --ok-container: rgba(76, 195, 130, 0.14);
+    --ok: #3fbfb3;  --ok-text: #5fd3c7;  --ok-container: rgba(63, 191, 179, 0.14);
     --warn: #f28c38; --warn-text: #f59e57; --warn-container: rgba(242, 140, 56, 0.14);
     --none: #8a857d;
     --error: #f08b80; --error-container: rgba(240, 139, 128, 0.14);

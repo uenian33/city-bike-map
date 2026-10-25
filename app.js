@@ -75,9 +75,9 @@
   // Below this zoom stations are drawn by the GPU (circle + text layers); above it the
   // stations inside the viewport become HTML "glass" pins. Both are cheap.
   const PIN_ZOOM = 14;
-  // Availability in muted green / orange / grey; blue only for the user and walking.
-  const LEVEL_COLOR = ['match', ['get', 'level'], 'ok', '#1f9d55', 'warn', '#ec7a1c', '#a39e93'];
-  const BLUE = '#2563eb', GREEN = '#1f9d55';
+  // Availability in teal / orange / grey; blue only for the user and walking.
+  const LEVEL_COLOR = ['match', ['get', 'level'], 'ok', '#13958c', 'warn', '#ec7a1c', '#a39e93'];
+  const BLUE = '#2563eb', TEAL = '#13958c';
   function addOverlays() {
     if (map.getSource('route')) return;
     const isDark = isDarkMap();
@@ -116,12 +116,12 @@
     map.addSource('me-acc', { type: 'geojson', data: accGeo });
     map.addLayer({ id: 'me-acc', type: 'fill', source: 'me-acc', paint: { 'fill-color': BLUE, 'fill-opacity': 0.12 } });
     map.addLayer({ id: 'me-acc-line', type: 'line', source: 'me-acc', paint: { 'line-color': BLUE, 'line-opacity': 0.4, 'line-width': 1 } });
-    // Google Maps route styling: cycling is a solid line with a casing, walking a trail of blue dots.
+    // Google Maps route styling: cycling is a solid teal line with a casing, walking a trail of blue dots.
     const bikeOnly = ['==', ['get', 'mode'], 'bike'];
     map.addLayer({ id: 'route-casing', type: 'line', source: 'route', filter: bikeOnly, layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': isDark ? '#14532d' : '#17824a', 'line-width': 9 } });
+      paint: { 'line-color': isDark ? '#134e4a' : '#0f766e', 'line-width': 9 } });
     map.addLayer({ id: 'route-line', type: 'line', source: 'route', filter: bikeOnly, layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': GREEN, 'line-width': 6 } });
+      paint: { 'line-color': TEAL, 'line-width': 6 } });
     map.addLayer({ id: 'route-walk', type: 'line', source: 'route', filter: ['!', bikeOnly], layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': BLUE, 'line-width': 6, 'line-dasharray': [0, 1.8] } });
   }

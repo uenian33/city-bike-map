@@ -8,7 +8,7 @@ with live bike counts, your position, and a walking route to the nearest bike.
 ## Features
 
 - Every station is a pin; the number on the pin is the bikes available right
-  now (green: plenty, amber: ≤3, grey: none / closed). Zoomed out, all 456
+  now (teal: plenty, orange: ≤3, grey: none / closed). Zoomed out, all 456
   stations are drawn by the GPU as MapLibre circle/text layers; from zoom 14
   the stations inside the viewport become HTML "glass" pins, added and removed
   as you pan. Nothing off-screen costs anything.
@@ -47,13 +47,14 @@ with live bike counts, your position, and a walking route to the nearest bike.
   drag between collapsed / half / full on compact widths (< 600 px), a
   floating side sheet on tablets, foldables, landscape phones and desktop.
   Safe-area aware (notch, Dynamic Island, home indicator, landscape insets).
-- Visual design follows the Google Maps app: opaque white surfaces with
-  Google elevation shadows, Google Sans, Material Icons, Google blue for
-  actions and tonal light-blue secondary buttons, green / yellow / grey
-  availability, walking routes as blue dots and rides as a green line. The
-  nearest-bike result is labelled "Your nearest bike". 48 px touch targets,
-  rem-based type that follows the user's text size; honours light/dark,
-  reduced motion, increased contrast and forced colors.
+- Visual design: Google Maps layout with Google Sans and Material Icons;
+  HSL city-bike yellow is the one brand colour (primary action, FAB, selected
+  filters) on warm off-white surfaces with soft shadows and no outline frames.
+  Availability is teal / orange / grey; blue is reserved for your location and
+  walking routes (dots), rides are a teal line. The nearest-bike result is
+  labelled "Your nearest bike". 48 px touch targets, rem-based type that
+  follows the user's text size; honours light/dark, reduced motion, increased
+  contrast and forced colors.
 
 ## Performance notes
 
