@@ -72,6 +72,8 @@
   window.visualViewport?.addEventListener('resize', fitCanvas);
   addEventListener('orientationchange', fitCanvas);
   addEventListener('pageshow', fitCanvas);
+  // iOS Safari / WKWebView: never let a pinch zoom the page itself — it belongs to the map.
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
   map.once('load', () => { fitCanvas(); setTimeout(fitCanvas, 400); setTimeout(fitCanvas, 1500); });
   map.addControl(new maplibregl.AttributionControl({
     compact: true,

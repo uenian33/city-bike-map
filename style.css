@@ -169,6 +169,9 @@ svg { flex: none; }
 
 #map { position: fixed; inset: 0; z-index: 0; background: inherit; }
 .maplibregl-map { font-family: var(--font); }
+/* Markers (station pins, blue dot, place pin) sit above the canvas: without this a pinch that
+   starts on one goes to the browser instead of the map, which on iOS means no zoom at all. */
+.maplibregl-marker { touch-action: none; }
 .maplibregl-ctrl-bottom-right { right: var(--sar); bottom: 0; }
 .maplibregl-ctrl-attrib {
   font: var(--t-label-m); font-size: 10px; line-height: 14px;
