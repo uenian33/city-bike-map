@@ -19,8 +19,8 @@ with live bike counts, your position, and a walking route to the nearest bike.
 - Layout after the Google Maps app: search bar on top with filter chips
   under it (**Bikes available**, **Free docks**) and the Map view button at
   the right end of that row ("Show all stations" lives in its menu). At the
-  bottom, the yellow **Your nearest station** button sits in the middle with
-  My location to its right. No zoom buttons:
+  bottom, one floating dock holds the yellow **Your nearest station** button
+  and My location, lifted clear of the screen edge. No zoom buttons:
   pinch, scroll or double-tap. While a phone's bottom sheet is open the bottom
   controls step aside; on wider screens the chips continue the top row beside
   the search bar. A station's actions sit under its title, Ride from here first.

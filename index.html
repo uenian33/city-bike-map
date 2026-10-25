@@ -57,13 +57,13 @@
     <svg viewBox="0 0 24 24"><path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/></svg>
   </button>
 
-  <!-- Bottom row: the primary action in the middle, my location at the right -->
-  <button class="fab" id="nearest-btn" title="Walking route to the nearest station with a bike">
-    <svg viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9a.996.996 0 0 0-1.41 0l-9 9a.996.996 0 0 0 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9a.996.996 0 0 0 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
-    <span>Your nearest station</span>
-  </button>
-  <div class="stack" id="stack">
-    <button class="glass ctrl round" id="locate" aria-label="My location" title="My location">
+  <!-- Bottom dock: the primary action and my location share one floating bar -->
+  <div class="glass stack" id="stack">
+    <button class="fab" id="nearest-btn" title="Walking route to the nearest station with a bike">
+      <svg viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9a.996.996 0 0 0-1.41 0l-9 9a.996.996 0 0 0 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9a.996.996 0 0 0 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
+      <span>Your nearest station</span>
+    </button>
+    <button class="ctrl round" id="locate" aria-label="My location" title="My location">
       <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
     </button>
   </div>
