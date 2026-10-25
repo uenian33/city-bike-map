@@ -36,7 +36,7 @@
 
   /* Status — fills (pins, dots) and accessible text tones */
   --ok: #1e8e3e;      --ok-text: #137333;     --ok-container: #e6f4ea;
-  --warn: #f9ab00;    --warn-text: #b06000;   --warn-container: #fef7e0;
+  --warn: #f29900;    --warn-text: #b06000;   --warn-container: #fef7e0;
   --none: #80868b;
   --error: #b3261e;   --error-container: #fce8e6;
   --hsl-yellow: #fbbc04;
@@ -256,7 +256,7 @@ svg { flex: none; }
 .results .hdr:active, .results .empty:active { transform: none; background: none; }
 .results .empty { min-height: 0; cursor: default; padding: var(--s2) var(--s3) var(--s3); }
 .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--outline-variant); border-top-color: var(--on-surface-variant); animation: spin .8s linear infinite; flex: none; }
-.place-ic { width: 40px; height: 40px; border-radius: 50%; background: var(--primary-container); color: var(--on-primary-container); display: grid; place-items: center; flex: none; }
+.place-ic { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-container); color: var(--on-surface-variant); display: grid; place-items: center; flex: none; }
 .place-ic svg { width: 20px; height: 20px; fill: currentColor; }
 
 /* ==========================================================================
@@ -292,9 +292,7 @@ svg { flex: none; }
 .fchip svg { width: 18px; height: 18px; fill: currentColor; color: var(--on-surface-variant); }
 .fchip::after { content: ""; position: absolute; inset: 0; border-radius: inherit; transition: background var(--fast); }
 .fchip:active::after { background: var(--state-press); }
-.fchip[data-filter="bikes"] svg { color: var(--ok); }
-.fchip[data-filter="docks"] svg { color: var(--primary); }
-.fchip[aria-pressed="true"] { background: var(--tonal); color: var(--on-tonal); }
+.fchip[aria-pressed="true"] { background: var(--inverse-surface); color: var(--inverse-on-surface); }
 .fchip[aria-pressed="true"] svg { color: inherit; }
 
 /* ---------- Round map buttons (layers, my location) ---------- */
@@ -456,52 +454,59 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 .sheet .close::after { background: var(--surface-container-high); }
 .sheet .close svg { width: 20px; height: 20px; }
 .sheet h2 { margin: var(--s1) 48px var(--s1) 0; font: var(--t-title-l); overflow-wrap: anywhere; }
-/* "Your nearest bike" — Google-style tonal label above the title */
+/* "Your nearest bike" — a quiet eyebrow above the title, not a coloured pill */
 .badge {
-  display: inline-flex; align-items: center; gap: 6px; margin: var(--s1) 0 var(--s2);
-  height: 28px; padding: 0 var(--s3) 0 var(--s2); border-radius: var(--r-sm);
-  background: var(--ok-container); color: var(--ok-text); font: var(--t-label-l);
+  display: flex; align-items: center; gap: 6px; margin: var(--s1) 0 2px;
+  color: var(--primary); font: var(--t-label-l);
 }
 .badge svg { width: 18px; height: 18px; fill: currentColor; }
 .badge + h2 { margin-top: 0; }
 .sheet .sub { color: var(--on-surface-variant); font: var(--t-body-m); margin: 0 0 var(--s4); }
 
 /* Stats — tonal tiles */
-.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); margin-bottom: var(--s3); }
-.stat { background: var(--surface-container-high); border-radius: var(--r-lg); padding: var(--s3); transition: background var(--med); }
-.stat .v { font: var(--t-display); font-size: 1.5rem; line-height: 1.75rem; font-variant-numeric: tabular-nums; transition: color var(--med); }
+/* Stats: one neutral card split by hairlines; only the bike count carries colour. */
+.stats {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--outline-variant); border-radius: var(--r-lg); margin-bottom: var(--s4); overflow: hidden;
+}
+.stat { padding: var(--s3) var(--s4); }
+.stat + .stat { border-left: 1px solid var(--outline-variant); }
+.stat .v { font: var(--t-display); font-size: 1.375rem; line-height: 1.75rem; font-variant-numeric: tabular-nums; transition: color var(--med); }
 .stat .l { font: var(--t-label-m); color: var(--on-surface-variant); margin-top: 2px; }
-.stat.ok { background: var(--ok-container); } .stat.ok .v { color: var(--ok-text); }
-.stat.warn { background: var(--warn-container); } .stat.warn .v { color: var(--warn-text); }
+.stat.ok .v { color: var(--ok-text); }
+.stat.warn .v { color: var(--warn-text); }
 .stat.none .v { color: var(--on-surface-variant); }
 /* Linear progress (M3): track + indicator */
-.bar { height: 6px; border-radius: 3px; background: var(--surface-container-high); overflow: hidden; margin: 0 0 var(--s4); }
-.bar > i { display: block; height: 100%; background: var(--hsl-yellow); border-radius: 3px; transition: width var(--slow) var(--ease); animation: grow var(--slow) var(--ease-decel) both; }
+/* Fill level: a thin bar along the bottom edge of the stats card */
+.bar { grid-column: 1 / -1; height: 3px; background: var(--surface-container-high); overflow: hidden; }
+.bar.warn > i { background: var(--warn); } .bar.none > i { background: var(--none); }
+.bar > i { display: block; height: 100%; background: var(--ok); transition: width var(--slow) var(--ease); animation: grow var(--slow) var(--ease-decel) both; }
 @keyframes grow { from { transform: scaleX(0); transform-origin: left; } }
 
-/* Buttons — filled / tonal pills, 48px high */
-.actions {
-  display: flex; gap: var(--s2); overflow-x: auto; scrollbar-width: none;
-  margin: 0 calc(-1 * var(--s5)) var(--s4); padding: 2px var(--s5);
-}
-.actions::-webkit-scrollbar { display: none; }
+/* Buttons — filled / tonal pills. Actions never scroll sideways: they share the row
+   equally, and with three of them the filled primary takes a full row of its own. */
+.actions { display: flex; flex-wrap: wrap; gap: var(--s2); margin: 0 0 var(--s4); }
+.actions > .btn { flex: 1 1 0; min-width: 0; white-space: normal; padding-inline: var(--s3); }
+.actions > .btn.primary { order: -1; }
+.actions:has(> .btn:nth-child(3)) > .btn.primary { flex-basis: 100%; min-height: var(--target); font-size: 1rem; }
 .btn {
   position: relative; overflow: hidden; flex: none;
   display: inline-flex; align-items: center; justify-content: center; gap: var(--s2);
   min-height: 44px; padding: var(--s2) var(--s5) var(--s2) var(--s4); border-radius: var(--r-full);
   font: var(--t-label-l); font-size: 0.875rem; text-align: center; white-space: nowrap;
-  background: var(--tonal); color: var(--on-tonal);
+  background: transparent; color: var(--on-surface); box-shadow: inset 0 0 0 1px var(--outline-variant);
   transition: transform var(--fast) var(--ease), background var(--med), box-shadow var(--med);
 }
 .btn::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: transparent; transition: background var(--fast); pointer-events: none; }
 .btn:active { transform: scale(0.97); }
 .btn:active::after { background: var(--state-press); }
 .btn:hover { text-decoration: none; }
-.btn.primary { background: var(--primary); color: var(--on-primary); }
+.btn.primary { background: var(--primary); color: var(--on-primary); box-shadow: none; }
+.btn:not(.primary) svg { color: var(--primary); }
 .btn svg { width: 18px; height: 18px; fill: currentColor; position: relative; z-index: 1; }
 
 .route-summary { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--s1) var(--s3); margin: 0 0 var(--s3); }
-.route-summary .big { font: var(--t-display); color: var(--ok-text); } /* Google shows ETAs in green */
+.route-summary .big { font: var(--t-display); }
 .route-summary .dim { color: var(--on-surface-variant); font: var(--t-body-m); }
 .steps { list-style: none; padding: 0; margin: var(--s4) 0 0; border-top: 1px solid var(--outline-variant); }
 .steps li { padding: var(--s3) 0; animation: rowIn var(--med) var(--ease-decel) both; border-bottom: 1px solid var(--outline-variant); font: var(--t-body-m); display: flex; gap: var(--s3); }
@@ -539,14 +544,14 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
   width: 100%; height: 100%;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,.2), inset 0 0 0 2.5px var(--c);
+  box-shadow: 0 2px 6px rgba(0,0,0,.2), inset 0 0 0 2px var(--c);
   display: grid; place-items: center;
   font: 700 13px/1 var(--font); color: #1a1c1e;
   font-variant-numeric: tabular-nums;
   transition: transform var(--med) var(--spring), box-shadow var(--med) var(--ease), color var(--med);
 }
 .station-pin::after { transition: background var(--med); }
-@media (prefers-color-scheme: dark) { .station-pin { background: #1e2026; color: #e6e7eb; box-shadow: 0 2px 8px rgba(0,0,0,.5), inset 0 0 0 2.5px var(--c); } }
+@media (prefers-color-scheme: dark) { .station-pin { background: #1e2026; color: #e6e7eb; box-shadow: 0 2px 8px rgba(0,0,0,.5), inset 0 0 0 2px var(--c); } }
 .station-pin.warn { --c: var(--warn); }
 .station-pin.none { --c: var(--none); color: var(--on-surface-variant); }
 .station-pin::after {
@@ -555,7 +560,7 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
   background: var(--c); transform: translateX(-50%) rotate(45deg); border-radius: 1px; z-index: -1;
 }
 .pin-wrap:hover { z-index: 999 !important; }
-.station-pin.selected { transform: scale(1.18); animation: selectPulse 1.8s var(--ease) infinite; box-shadow: 0 4px 14px rgba(0,0,0,.3), inset 0 0 0 2.5px var(--c), 0 0 0 4px color-mix(in srgb, var(--primary) 30%, transparent); }
+.station-pin.selected { transform: scale(1.18); animation: selectPulse 1.8s var(--ease) infinite; box-shadow: 0 4px 14px rgba(0,0,0,.3), inset 0 0 0 2px var(--c), 0 0 0 4px color-mix(in srgb, var(--primary) 30%, transparent); }
 .zoom-mid .station-pin { font-size: 11.5px; }
 
 .me-dot {
@@ -604,8 +609,8 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 .trip-name.dim { color: var(--on-surface-variant); font-weight: 500; }
 .trip-row .sub { margin: 1px 0 0; font: var(--t-body-m); }
 .trip-line { width: 2px; height: 16px; margin: var(--s1) 0 var(--s1) 15px; border-left: 2px dashed var(--outline); opacity: .6; }
-.note { font: var(--t-body-m); margin: 0 0 var(--s3); padding: var(--s3) var(--s4); border-radius: var(--r-md); background: var(--surface-container-high); }
-.note.ok { color: var(--ok-text); background: var(--ok-container); }
+.note { font: var(--t-body-m); margin: 0 0 var(--s3); padding: var(--s3) var(--s4); border-radius: var(--r-md); background: var(--surface-container); color: var(--on-surface-variant); }
+.note.ok { color: var(--ok-text); }
 .note.warn { color: var(--warn-text); background: var(--warn-container); }
 
 /* ---------- Journey legs ---------- */
@@ -614,8 +619,8 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 .leg:nth-child(2) { animation-delay: 60ms; } .leg:nth-child(3) { animation-delay: 120ms; }
 .leg:last-child { border-bottom: 0; }
 .leg-body { min-width: 0; }
-.leg-ic { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--primary-container); color: var(--on-primary-container); }
-.leg.bike .leg-ic { background: var(--ok-container); color: var(--ok-text); }
+.leg-ic { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--surface-container); color: var(--accent); }
+.leg.bike .leg-ic { color: var(--ok); }
 .leg-ic svg { width: 22px; height: 22px; fill: currentColor; }
 .leg-title { font: var(--t-title-m); }
 .leg .sub { margin: 1px 0 0; font: var(--t-body-m); }
@@ -668,8 +673,6 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
   @keyframes slideIn { from { transform: translateX(-16px); opacity: 0; } to { transform: none; opacity: 1; } }
   @keyframes slideOut { to { transform: translateX(-24px); opacity: 0; } }
   .chip.pushed { left: calc(var(--edge-l) + var(--panel-w) + var(--s3)); }
-  /* Mouse users can't swipe a hidden-scrollbar row: let the actions wrap instead. */
-  .actions { flex-wrap: wrap; overflow: visible; }
   .grabber-hit { display: none; }
   .sheet.collapsed, .sheet.full { max-height: calc(100dvh - var(--edge-t) - var(--bar-h) - var(--s3) - var(--edge-b)); overflow: auto; }
   .toast {

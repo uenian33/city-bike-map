@@ -76,7 +76,7 @@
   // stations inside the viewport become HTML "glass" pins. Both are cheap.
   const PIN_ZOOM = 14;
   // Google Maps palette: green / yellow / grey availability, blue for the user and walking.
-  const LEVEL_COLOR = ['match', ['get', 'level'], 'ok', '#1e8e3e', 'warn', '#f9ab00', '#80868b'];
+  const LEVEL_COLOR = ['match', ['get', 'level'], 'ok', '#1e8e3e', 'warn', '#f29900', '#80868b'];
   const BLUE = '#1a73e8', GREEN = '#1e8e3e';
   function addOverlays() {
     if (map.getSource('route')) return;
@@ -89,7 +89,7 @@
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 4, 11, 7, 13, 11, PIN_ZOOM, 13],
         'circle-color': isDark ? '#1f1f1f' : '#ffffff',
         'circle-stroke-color': LEVEL_COLOR,
-        'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, 1.5, 12, 2.5],
+        'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, 1.5, 12, 2],
         'circle-opacity': 0.95,
         'circle-stroke-color-transition': { duration: 400 },
       },
@@ -568,6 +568,8 @@
     const dist = me ? fmtDist(haversine(me, s)) + ' away' : '';
     const status = !s.renting ? 'Station closed' : s.bikes === 0 ? 'No bikes right now' : s.bikes <= 3 ? 'Only a few bikes left' : 'Bikes available';
     const route = currentRoute && currentRoute.toId === s.id ? currentRoute : null;
+    // Taking a bike from this station is the main thing to do here; when it has none, getting there is.
+    const canRide = s.renting && s.bikes > 0;
     const appleUrl = `https://maps.apple.com/?daddr=${s.lat},${s.lon}&dirflg=w`;
     const gUrl = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}&travelmode=walking`;
     if (!setSheet(`
@@ -575,13 +577,13 @@
       <h2>${esc(s.name)}</h2>
       <p class="sub">${route ? `Closest station with a bike to you · ${fmtDist(route.distance)} walk` : `${esc(status)}${dist ? ' · ' + dist : ''}`}</p>
       <div class="actions">
-        <button class="btn primary" id="dir-btn">
-          <svg viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9a.996.996 0 0 0-1.41 0l-9 9a.996.996 0 0 0 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9a.996.996 0 0 0 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
-          ${route ? 'Re-route' : 'Directions'}
-        </button>
-        <button class="btn" id="ride-btn" ${s.bikes < 1 || !s.renting ? 'title="No bikes here right now"' : ''}>
+        <button class="btn${canRide ? ' primary' : ''}" id="ride-btn" ${canRide ? '' : 'title="No bikes here right now"'}>
           <svg viewBox="0 0 24 24"><path d="M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10 2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z"/></svg>
           Ride from here
+        </button>
+        <button class="btn${canRide ? '' : ' primary'}" id="dir-btn">
+          <svg viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9a.996.996 0 0 0-1.41 0l-9 9a.996.996 0 0 0 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9a.996.996 0 0 0 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
+          Directions
         </button>
         <a class="btn" href="${/iPhone|iPad|Macintosh/.test(navigator.userAgent) ? appleUrl : gUrl}" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
@@ -591,8 +593,8 @@
         <div class="stat ${lv}"><div class="v">${s.bikes}</div><div class="l">Bikes</div></div>
         <div class="stat"><div class="v">${s.docks}</div><div class="l">Free docks</div></div>
         <div class="stat"><div class="v">${s.capacity}</div><div class="l">Capacity</div></div>
+        <div class="bar ${lv}"><i style="width:${pct}%"></i></div>
       </div>
-      <div class="bar"><i style="width:${pct}%"></i></div>
       ${route ? `
         <div class="route-summary">
           <span class="big">${fmtDur(route.duration)}</span>
