@@ -16,7 +16,8 @@
     chip: $('status-chip'), statusText: $('status-text'), liveDot: $('live-dot'),
     sheet: $('sheet'), sheetBody: $('sheet-body'), sheetClose: $('sheet-close'),
     locate: $('locate'), nearest: $('nearest-btn'), fitAll: $('fit-all'),
-    zoomIn: $('zoom-in'), zoomOut: $('zoom-out'), controls: document.querySelector('.controls'), about: $('about'), menu: $('menu-btn'),
+    zoomIn: $('zoom-in'), zoomOut: $('zoom-out'), about: $('about'), menu: $('menu-btn'),
+    searchBar: $('search'), chips: $('chips'), layers: $('layers'), stack: $('stack'),
   };
 
   // ---------- Map ----------
@@ -30,7 +31,7 @@
       const left = el.sheet.hidden ? 40 : Math.round(el.sheet.getBoundingClientRect().right) + 32;
       return { top: 96, left, right: 96, bottom: 48 };
     }
-    return { top: 136, left: 32, right: 32, bottom: Math.round(innerHeight * 0.5) + 32 };
+    return { top: 128, left: 32, right: 32, bottom: Math.round(innerHeight * 0.5) + 32 };
   }
   const OFM = 'https://tiles.openfreemap.org/styles/';
   const SATELLITE_STYLE = {
@@ -206,6 +207,10 @@
   let selectedId = null;
 
   const level = (s) => (!s.renting || s.bikes === 0) ? 'none' : s.bikes <= 3 ? 'warn' : 'ok';
+  // Filter chips: null shows every station, 'bikes' those you can rent from, 'docks' those you can return to.
+  let filter = null;
+  const passes = (s) => s.id === selectedId || !filter
+    || (filter === 'bikes' ? s.renting && s.bikes > 0 : s.docks > 0);
   function paintPin(s) {
     if (!s.el) return;
     const d = s.el;
@@ -261,7 +266,7 @@
   function renderStations() {
     stationGeo = {
       type: 'FeatureCollection',
-      features: [...stations.values()].map((s) => ({
+      features: [...stations.values()].filter(passes).map((s) => ({
         type: 'Feature', id: s.id,
         properties: { id: s.id, bikes: s.bikes, level: level(s) },
         geometry: { type: 'Point', coordinates: [s.lon, s.lat] },
@@ -277,7 +282,7 @@
     const b = z >= PIN_ZOOM ? map.getBounds() : null;
     const pad = b ? (b.getEast() - b.getWest()) * 0.15 : 0;
     for (const s of stations.values()) {
-      const show = b && s.lon > b.getWest() - pad && s.lon < b.getEast() + pad
+      const show = b && passes(s) && s.lon > b.getWest() - pad && s.lon < b.getEast() + pad
         && s.lat > b.getSouth() - pad / 2 && s.lat < b.getNorth() + pad / 2;
       if (show) {
         if (!s.marker) {
@@ -351,11 +356,11 @@
   // The part of the map not covered by floating chrome, inset by a pin's height so markers at
   // the edge stay fully visible.
   function viewPadding() {
-    const PIN = 28;
-    const top = Math.max(el.chip.getBoundingClientRect().bottom, isWide() ? 0 : el.controls.getBoundingClientRect().bottom);
-    const left = isWide() && !el.sheet.hidden ? el.sheet.getBoundingClientRect().right : 0;
-    const right = isWide() ? innerWidth - el.controls.getBoundingClientRect().left : 0;
-    const bottom = innerHeight - el.nearest.getBoundingClientRect().top;
+    const PIN = 28, r = (n) => n.getBoundingClientRect();
+    const top = Math.max(r(el.searchBar).bottom, r(el.chips).bottom, isWide() ? 0 : r(el.layers).bottom);
+    const left = isWide() && !el.sheet.hidden ? r(el.sheet).right : 0;
+    const right = isWide() ? innerWidth - r(el.stack).left : 0;
+    const bottom = innerHeight - (isWide() ? r(el.chip).top : r(el.nearest).top);
     return { top: Math.round(top + PIN), left: Math.round(left + PIN), right: Math.round(right + PIN), bottom: Math.round(bottom + PIN / 2) };
   }
   // Centre on the user at a zoom that shows at least NEARBY_COUNT stations. Returns false when
@@ -448,13 +453,14 @@
       h = Math.max(0, el.sheet.offsetHeight - ty);
     }
     document.documentElement.style.setProperty('--sheet-h', `${Math.round(h)}px`);
-    // The FAB floats above the sheet only while it fits below the map-control capsule;
-    // a sheet that reaches the capsule hides that too.
-    const capsuleBottom = el.controls.getBoundingClientRect().bottom;
-    const room = innerHeight - h - capsuleBottom;
-    const FAB_ROOM = 88; // FAB + margins
-    document.body.classList.toggle('sheet-tall', h > 0 && room < FAB_ROOM);
+    // The location button and FAB float above the sheet only while they fit below the
+    // layers button; a sheet that reaches the top chrome hides that too.
+    const topChrome = el.layers.getBoundingClientRect().bottom;
+    const room = innerHeight - h - topChrome;
+    const STACK_ROOM = 56 + 16 + 56 + 32; // location + gap + FAB + margins
+    document.body.classList.toggle('sheet-tall', h > 0 && room < STACK_ROOM);
     document.body.classList.toggle('sheet-full', h > 0 && room < 8);
+    document.body.classList.toggle('sheet-open', h > 0);
   }
   new ResizeObserver(updateStack).observe(el.sheet);
   addEventListener('resize', updateStack);
@@ -558,6 +564,19 @@
     if (!setSheet(`
       <h2>${esc(s.name)}</h2>
       <p class="sub">${esc(status)}${dist ? ' · ' + dist : ''}</p>
+      <div class="actions">
+        <button class="btn primary" id="dir-btn">
+          <svg viewBox="0 0 24 24"><path d="M21.7 11.3l-9-9a1 1 0 0 0-1.4 0l-9 9a1 1 0 0 0 0 1.4l9 9a1 1 0 0 0 1.4 0l9-9a1 1 0 0 0 0-1.4ZM14 14.5V12h-4v3H8v-4a1 1 0 0 1 1-1h5V7.5l3.5 3.5L14 14.5Z"/></svg>
+          ${route ? 'Re-route' : 'Directions'}
+        </button>
+        <button class="btn" id="ride-btn" ${s.bikes < 1 || !s.renting ? 'title="No bikes here right now"' : ''}>
+          <svg viewBox="0 0 24 24"><path d="M15.5 5.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM5 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM19 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM12 16.5V12h3.5v-1.5H12.4l-2-3.3 2.3-2.2 1.9 2.3H17V5.8h-1.7L13.6 3.7a1.5 1.5 0 0 0-2.2-.2L8.3 6.4a1.5 1.5 0 0 0-.1 2l2.3 3.6v4.5H12Z"/></svg>
+          Ride from here
+        </button>
+        <a class="btn" href="${/iPhone|iPad|Macintosh/.test(navigator.userAgent) ? appleUrl : gUrl}" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.4l-7.3 7.3-1.4-1.4L17.6 5H14V3ZM5 5h6v2H5v12h12v-6h2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg>
+          Open in Maps</a>
+      </div>
       <div class="stats">
         <div class="stat ${lv}"><div class="v">${s.bikes}</div><div class="l">Bikes</div></div>
         <div class="stat"><div class="v">${s.docks}</div><div class="l">Free docks</div></div>
@@ -569,17 +588,6 @@
           <span class="big">${fmtDur(route.duration)}</span>
           <span class="dim">${fmtDist(route.distance)} · walking</span>
         </div>` : ''}
-      <div class="actions">
-        <button class="btn primary" id="dir-btn">
-          <svg viewBox="0 0 24 24"><path d="M21.7 11.3l-9-9a1 1 0 0 0-1.4 0l-9 9a1 1 0 0 0 0 1.4l9 9a1 1 0 0 0 1.4 0l9-9a1 1 0 0 0 0-1.4ZM14 14.5V12h-4v3H8v-4a1 1 0 0 1 1-1h5V7.5l3.5 3.5L14 14.5Z"/></svg>
-          ${route ? 'Re-route' : 'Directions'}
-        </button>
-        <button class="btn" id="ride-btn" ${s.bikes < 1 || !s.renting ? 'title="No bikes here right now"' : ''}>
-          <svg viewBox="0 0 24 24"><path d="M15.5 5.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM5 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM19 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM12 16.5V12h3.5v-1.5H12.4l-2-3.3 2.3-2.2 1.9 2.3H17V5.8h-1.7L13.6 3.7a1.5 1.5 0 0 0-2.2-.2L8.3 6.4a1.5 1.5 0 0 0-.1 2l2.3 3.6v4.5H12Z"/></svg>
-          Ride from here
-        </button>
-        <a class="btn" href="${/iPhone|iPad|Macintosh/.test(navigator.userAgent) ? appleUrl : gUrl}" target="_blank" rel="noopener">Open in Maps</a>
-      </div>
       ${route && route.steps.length ? `<ol class="steps">${route.steps.map((st) =>
         `<li><span>${esc(st.text)}</span><span class="d">${st.distance ? fmtDist(st.distance) : ''}</span></li>`).join('')}</ol>` : ''}
     `, `station:${s.id}:${route ? 'r' : ''}`)) return;
@@ -1044,6 +1052,11 @@
   document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#search')) setOpen(el.results, false); });
 
   // ---------- Misc controls ----------
+  el.chips.querySelectorAll('[data-filter]').forEach((c) => c.addEventListener('click', () => {
+    filter = filter === c.dataset.filter ? null : c.dataset.filter;
+    el.chips.querySelectorAll('[data-filter]').forEach((x) => x.setAttribute('aria-pressed', x.dataset.filter === filter));
+    renderStations();
+  }));
   el.zoomIn.addEventListener('click', () => map.zoomIn());
   el.zoomOut.addEventListener('click', () => map.zoomOut());
   el.fitAll.addEventListener('click', () => { setOpen($('view-menu'), false); fitAll(true); });
