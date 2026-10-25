@@ -2,8 +2,9 @@
    Helsinki City Bikes — design system
    Layout after the Google Maps app (Material 3); a restrained, neutral palette:
    - Opaque white surfaces with soft shadows — no glass, no outline frames.
-   - Near-black ink for the primary action, soft grey fills for secondary ones;
-     colour only where it means something (availability, your location). Google Sans.
+   - HSL city-bike yellow as the single brand colour (primary action, FAB, selected
+     filters) on warm off-white; soft fills for secondary actions; otherwise colour only
+     where it means something (availability, your location). Google Sans.
    - Material Icons, pill-shaped search bar, chips and buttons; 16px-corner FAB;
      28px-corner sheets.
    - Touch targets ≥ 48px, 4/8px grid, M3 window-size classes
@@ -13,32 +14,35 @@
 
 /* ---------- Tokens ---------- */
 :root {
-  /* Color — light. Neutral zinc surfaces and near-black ink for actions; colour is kept
-     for meaning only: availability (green / amber / grey) and the user's location (blue). */
-  --primary: #18181b;              /* ink: white text on it 17:1 */
-  --on-primary: #ffffff;
-  --primary-container: #f4f4f5;
-  --on-primary-container: #18181b;
-  --tonal: #f4f4f5;                /* secondary buttons */
-  --on-tonal: #18181b;
+  /* Color — light. HSL city-bike yellow is the one brand colour (primary action, FAB,
+     selected filters) on warm off-white surfaces. Otherwise colour only carries meaning:
+     availability (green / orange / grey) and the user's location (blue). */
+  --primary: #fcbc19;              /* city-bike yellow; dark text on it 9.7:1 */
+  --on-primary: #1f1f1f;
+  --primary-container: #fff3d1;
+  --on-primary-container: #3d2e00;
+  --tonal: #f4f1ea;                /* secondary buttons */
+  --on-tonal: #262420;
   --accent: #2563eb;               /* blue dot, walking route, links */
-  --surface: #ffffff;
+  --ink: #1f1f1f;                  /* focus rings, selected text where yellow would be too faint */
+  --surface: #fffdf9;
   --surface-container-lowest: #ffffff;
-  --surface-container-low: #fafafa;
-  --surface-container: #f4f4f5;
-  --surface-container-high: #ececee;
-  --on-surface: #18181b;
-  --on-surface-variant: #6b6b70;   /* 5.3:1 on white */
-  --outline: #a1a1aa;
-  --outline-variant: #e4e4e7;
-  --inverse-surface: #18181b;
-  --inverse-on-surface: #fafafa;
-  --scrim: rgba(0, 0, 0, 0.32);
+  --surface-container-low: #fbf9f4;
+  --surface-container: #f4f1ea;
+  --surface-container-high: #ebe7de;
+  --on-surface: #1f1f1f;
+  --on-surface-variant: #6b665c;   /* 5.6:1 on surface */
+  --outline: #a39e93;
+  --outline-variant: #e7e2d8;
+  --inverse-surface: #2a2824;
+  --inverse-on-surface: #fbf9f4;
+  --scrim: rgba(20, 18, 14, 0.32);
 
-  /* Status — fills (pins, dots, bars) and accessible text tones */
+  /* Status — fills (pins, dots, bars) and accessible text tones. "Few bikes" is orange,
+     clearly apart from the brand yellow. */
   --ok: #1f9d55;      --ok-text: #17824a;     --ok-container: #ecf7f0;
-  --warn: #e8930c;    --warn-text: #a85f00;   --warn-container: #fdf4e6;
-  --none: #a1a1aa;
+  --warn: #ec7a1c;    --warn-text: #b4530a;   --warn-container: #fdf0e6;
+  --none: #a39e93;
   --error: #c0392b;   --error-container: #fbeceb;
   --hsl-yellow: #fcbc19;
 
@@ -50,14 +54,14 @@
   --glass-highlight: none;
 
   /* Elevation (Google Material shadows) */
-  --elev-1: 0 1px 2px rgba(24, 24, 27, 0.08), 0 2px 8px rgba(24, 24, 27, 0.08);
-  --elev-2: 0 1px 3px rgba(24, 24, 27, 0.08), 0 6px 20px rgba(24, 24, 27, 0.10);
-  --elev-3: 0 2px 6px rgba(24, 24, 27, 0.06), 0 12px 32px rgba(24, 24, 27, 0.14);
+  --elev-1: 0 1px 2px rgba(40, 32, 16, 0.08), 0 2px 8px rgba(40, 32, 16, 0.08);
+  --elev-2: 0 1px 3px rgba(40, 32, 16, 0.08), 0 6px 20px rgba(40, 32, 16, 0.10);
+  --elev-3: 0 2px 6px rgba(40, 32, 16, 0.06), 0 12px 32px rgba(40, 32, 16, 0.14);
 
   /* State layers (M3): overlay of the content color */
   --state-hover: color-mix(in srgb, currentColor 8%, transparent);
   --state-press: color-mix(in srgb, currentColor 12%, transparent);
-  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--primary) 45%, transparent);
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--primary) 70%, transparent);
 
   /* Shape (M3 corner scale) */
   --r-xs: 4px; --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 28px; --r-full: 999px;
@@ -103,28 +107,29 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --primary: #f4f4f5;
-    --on-primary: #18181b;
-    --primary-container: #2e2e32;
-    --on-primary-container: #f4f4f5;
-    --tonal: #2e2e32;
-    --on-tonal: #f4f4f5;
+    --primary: #fcbc19;
+    --on-primary: #1f1f1f;
+    --primary-container: #3d2e00;
+    --on-primary-container: #ffe08a;
+    --tonal: #2e2c28;
+    --on-tonal: #f3f1ec;
     --accent: #60a5fa;
-    --surface: #1c1c1f;
-    --surface-container-lowest: #111113;
-    --surface-container-low: #202023;
-    --surface-container: #27272a;
-    --surface-container-high: #2f2f33;
-    --on-surface: #f4f4f5;
-    --on-surface-variant: #a1a1aa;
-    --outline: #71717a;
-    --outline-variant: #3f3f46;
-    --inverse-surface: #f4f4f5;
-    --inverse-on-surface: #18181b;
+    --ink: #f3f1ec;
+    --surface: #1d1c1a;
+    --surface-container-lowest: #121110;
+    --surface-container-low: #22201e;
+    --surface-container: #292724;
+    --surface-container-high: #33302c;
+    --on-surface: #f3f1ec;
+    --on-surface-variant: #a8a39a;
+    --outline: #75706a;
+    --outline-variant: #3d3a35;
+    --inverse-surface: #f3f1ec;
+    --inverse-on-surface: #1d1c1a;
     --scrim: rgba(0, 0, 0, 0.55);
     --ok: #4cc382;  --ok-text: #5cc58a;  --ok-container: rgba(76, 195, 130, 0.14);
-    --warn: #f0a63a; --warn-text: #f5b347; --warn-container: rgba(240, 166, 58, 0.14);
-    --none: #8e8e93;
+    --warn: #f28c38; --warn-text: #f59e57; --warn-container: rgba(242, 140, 56, 0.14);
+    --none: #8a857d;
     --error: #f08b80; --error-container: rgba(240, 139, 128, 0.14);
     --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
     --elev-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
@@ -155,7 +160,7 @@ a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 [hidden] { display: none !important; }
 :focus { outline: none; }
-:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 svg { flex: none; }
 
 #map { position: fixed; inset: 0; z-index: 0; background: inherit; }
@@ -293,7 +298,7 @@ svg { flex: none; }
 .fchip svg { width: 18px; height: 18px; fill: currentColor; color: var(--on-surface-variant); }
 .fchip::after { content: ""; position: absolute; inset: 0; border-radius: inherit; transition: background var(--fast); }
 .fchip:active::after { background: var(--state-press); }
-.fchip[aria-pressed="true"] { background: var(--inverse-surface); color: var(--inverse-on-surface); }
+.fchip[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); }
 .fchip[aria-pressed="true"] svg { color: inherit; }
 
 /* ---------- Map controls ---------- */
@@ -348,6 +353,7 @@ svg { flex: none; }
   font: var(--t-label-m); color: var(--on-surface-variant);
   font-variant-numeric: tabular-nums; white-space: nowrap;
   max-width: calc(100vw - var(--edge-l) - var(--edge-r) - var(--fab-size) - var(--s3)); overflow: hidden; text-overflow: ellipsis;
+  user-select: none; -webkit-user-select: none;
   box-shadow: var(--elev-1), inset 0 0 0 0.5px var(--glass-edge);
   animation: riseIn var(--slow) var(--ease-decel) .16s both;
   transition: left var(--med) var(--ease), bottom var(--slow) var(--spring), opacity var(--med), transform var(--med) var(--ease);
@@ -392,7 +398,7 @@ body.sheet-full .chips { opacity: 0; transform: translateY(-8px); pointer-events
 }
 .view-opt .thumb { width: 100%; aspect-ratio: 1; border-radius: var(--r-md); box-shadow: inset 0 0 0 1px var(--outline-variant); transition: box-shadow var(--med) var(--ease), transform var(--med) var(--spring); }
 .view-opt:active .thumb { transform: scale(.94); }
-.view-opt.active { color: var(--primary); font-weight: 600; }
+.view-opt.active { color: var(--on-surface); font-weight: 600; }
 .view-opt.active .thumb { box-shadow: 0 0 0 2px var(--surface-container-lowest), 0 0 0 4px var(--primary); }
 .thumb-std { background: linear-gradient(135deg, #f3f4f6 0 40%, #dfe6ee 40% 55%, #f3f4f6 55%), #f3f4f6; }
 .thumb-det { background: linear-gradient(135deg, #f7f0dc 0 35%, #c9e4b4 35% 50%, #ffffff 50% 65%, #b9d7f2 65%); }

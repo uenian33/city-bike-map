@@ -75,8 +75,8 @@
   // Below this zoom stations are drawn by the GPU (circle + text layers); above it the
   // stations inside the viewport become HTML "glass" pins. Both are cheap.
   const PIN_ZOOM = 14;
-  // Availability in muted green / amber / grey; blue only for the user and walking.
-  const LEVEL_COLOR = ['match', ['get', 'level'], 'ok', '#1f9d55', 'warn', '#e8930c', '#a1a1aa'];
+  // Availability in muted green / orange / grey; blue only for the user and walking.
+  const LEVEL_COLOR = ['match', ['get', 'level'], 'ok', '#1f9d55', 'warn', '#ec7a1c', '#a39e93'];
   const BLUE = '#2563eb', GREEN = '#1f9d55';
   function addOverlays() {
     if (map.getSource('route')) return;
@@ -87,7 +87,7 @@
       id: 'st-circle', type: 'circle', source: 'stations', maxzoom: PIN_ZOOM,
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 4, 11, 7, 13, 11, PIN_ZOOM, 13],
-        'circle-color': isDark ? '#232326' : '#ffffff',
+        'circle-color': isDark ? '#292724' : '#ffffff',
         'circle-stroke-color': LEVEL_COLOR,
         'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, 1.5, 12, 2],
         'circle-opacity': 0.95,
@@ -110,7 +110,7 @@
         'text-size': ['interpolate', ['linear'], ['zoom'], 11, 8, 13, 11, PIN_ZOOM, 12],
         'text-allow-overlap': true, 'text-ignore-placement': true,
       },
-      paint: { 'text-color': ['case', ['==', ['get', 'level'], 'none'], '#a1a1aa', isDark ? '#f4f4f5' : '#18181b'] },
+      paint: { 'text-color': ['case', ['==', ['get', 'level'], 'none'], '#a39e93', isDark ? '#f3f1ec' : '#1f1f1f'] },
     });
     map.addSource('route', { type: 'geojson', data: routeGeo });
     map.addSource('me-acc', { type: 'geojson', data: accGeo });
