@@ -75,7 +75,9 @@
   // Below this zoom stations are drawn by the GPU (circle + text layers); above it the
   // stations inside the viewport become HTML "glass" pins. Both are cheap.
   const PIN_ZOOM = 14;
-  const LEVEL_COLOR = ['match', ['get', 'level'], 'ok', '#34c759', 'warn', '#ff9f0a', '#8e8e93'];
+  // Google Maps palette: green / yellow / grey availability, blue for the user and walking.
+  const LEVEL_COLOR = ['match', ['get', 'level'], 'ok', '#1e8e3e', 'warn', '#f9ab00', '#80868b'];
+  const BLUE = '#1a73e8', GREEN = '#1e8e3e';
   function addOverlays() {
     if (map.getSource('route')) return;
     const isDark = isDarkMap();
@@ -85,7 +87,7 @@
       id: 'st-circle', type: 'circle', source: 'stations', maxzoom: PIN_ZOOM,
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 4, 11, 7, 13, 11, PIN_ZOOM, 13],
-        'circle-color': isDark ? '#1e2026' : '#ffffff',
+        'circle-color': isDark ? '#1f1f1f' : '#ffffff',
         'circle-stroke-color': LEVEL_COLOR,
         'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, 1.5, 12, 2.5],
         'circle-opacity': 0.95,
@@ -97,7 +99,7 @@
       filter: ['==', ['get', 'id'], selectedId ?? ''],
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 8, 11, 12, 13, 17, PIN_ZOOM, 19],
-        'circle-color': '#0a84ff', 'circle-opacity': 0.25,
+        'circle-color': BLUE, 'circle-opacity': 0.25,
         'circle-radius-transition': { duration: 300 },
       },
     }, 'st-circle');
@@ -108,23 +110,28 @@
         'text-size': ['interpolate', ['linear'], ['zoom'], 11, 8, 13, 11, PIN_ZOOM, 12],
         'text-allow-overlap': true, 'text-ignore-placement': true,
       },
-      paint: { 'text-color': ['case', ['==', ['get', 'level'], 'none'], '#8e8e93', isDark ? '#e6e7eb' : '#1a1c1e'] },
+      paint: { 'text-color': ['case', ['==', ['get', 'level'], 'none'], '#80868b', isDark ? '#e3e3e3' : '#1f1f1f'] },
     });
     map.addSource('route', { type: 'geojson', data: routeGeo });
     map.addSource('me-acc', { type: 'geojson', data: accGeo });
-    map.addLayer({ id: 'me-acc', type: 'fill', source: 'me-acc', paint: { 'fill-color': '#0a84ff', 'fill-opacity': 0.1 } });
-    map.addLayer({ id: 'me-acc-line', type: 'line', source: 'me-acc', paint: { 'line-color': '#0a84ff', 'line-opacity': 0.35, 'line-width': 1 } });
-    map.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': isDark ? '#121316' : '#ffffff', 'line-width': 10, 'line-opacity': 0.9 } });
-    map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': ['match', ['get', 'mode'], 'bike', '#34c759', '#0a84ff'], 'line-width': 6 } });
+    map.addLayer({ id: 'me-acc', type: 'fill', source: 'me-acc', paint: { 'fill-color': BLUE, 'fill-opacity': 0.12 } });
+    map.addLayer({ id: 'me-acc-line', type: 'line', source: 'me-acc', paint: { 'line-color': BLUE, 'line-opacity': 0.4, 'line-width': 1 } });
+    // Google Maps route styling: cycling is a solid line with a casing, walking a trail of blue dots.
+    const bikeOnly = ['==', ['get', 'mode'], 'bike'];
+    map.addLayer({ id: 'route-casing', type: 'line', source: 'route', filter: bikeOnly, layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': isDark ? '#0b5b23' : '#137333', 'line-width': 9 } });
+    map.addLayer({ id: 'route-line', type: 'line', source: 'route', filter: bikeOnly, layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': GREEN, 'line-width': 6 } });
+    map.addLayer({ id: 'route-walk', type: 'line', source: 'route', filter: ['!', bikeOnly], layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': BLUE, 'line-width': 6, 'line-dasharray': [0, 1.8] } });
   }
   map.on('style.load', addOverlays);
   // Layer-scoped handlers are looked up by id at event time, so they survive setStyle().
   map.on('click', 'st-circle', (e) => {
     const f = e.features?.[0]; if (!f) return;
     clickedFeature = true;
-    select(String(f.id), false);
+    // GeoJSON string ids are not kept as feature ids (MapLibre only keeps numeric ones): read the property.
+    select(String(f.properties.id), false);
   });
   map.on('mouseenter', 'st-circle', () => { map.getCanvas().style.cursor = 'pointer'; });
   map.on('mouseleave', 'st-circle', () => { map.getCanvas().style.cursor = ''; });
@@ -391,6 +398,7 @@
 
   // ---------- Selection & sheet ----------
   function select(id, fly = true) {
+    if (!stations.has(id)) return; // never leave the sheet showing a stale plan for an unknown id
     if (trip && !trip.to && id !== trip.from) { completeTrip(id); return; }
     if (trip) trip = null; // picking a station outside the planner ends it
     if (journey) { journey = null; setRoute(EMPTY); }
@@ -540,7 +548,8 @@
     return 2 * R * Math.asin(Math.sqrt(h));
   };
 
-  let currentRoute = null; // {toId, distance, duration, steps}
+  let currentRoute = null; // {toId, distance, duration, steps} — only set by the nearest-bike button
+  const ICON_BIKE = 'M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10 2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z';
   // Only touch the DOM when the content actually changed, so periodic refreshes don't
   // reset scroll position or interrupt a tap.
   let lastSheetHtml = '', lastSheetKey = '';
@@ -562,19 +571,20 @@
     const appleUrl = `https://maps.apple.com/?daddr=${s.lat},${s.lon}&dirflg=w`;
     const gUrl = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}&travelmode=walking`;
     if (!setSheet(`
+      ${route ? `<div class="badge"><svg viewBox="0 0 24 24"><path d="${ICON_BIKE}"/></svg>Your nearest bike</div>` : ''}
       <h2>${esc(s.name)}</h2>
-      <p class="sub">${esc(status)}${dist ? ' · ' + dist : ''}</p>
+      <p class="sub">${route ? `Closest station with a bike to you · ${fmtDist(route.distance)} walk` : `${esc(status)}${dist ? ' · ' + dist : ''}`}</p>
       <div class="actions">
         <button class="btn primary" id="dir-btn">
-          <svg viewBox="0 0 24 24"><path d="M21.7 11.3l-9-9a1 1 0 0 0-1.4 0l-9 9a1 1 0 0 0 0 1.4l9 9a1 1 0 0 0 1.4 0l9-9a1 1 0 0 0 0-1.4ZM14 14.5V12h-4v3H8v-4a1 1 0 0 1 1-1h5V7.5l3.5 3.5L14 14.5Z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9a.996.996 0 0 0-1.41 0l-9 9a.996.996 0 0 0 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9a.996.996 0 0 0 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
           ${route ? 'Re-route' : 'Directions'}
         </button>
         <button class="btn" id="ride-btn" ${s.bikes < 1 || !s.renting ? 'title="No bikes here right now"' : ''}>
-          <svg viewBox="0 0 24 24"><path d="M15.5 5.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM5 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM19 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM12 16.5V12h3.5v-1.5H12.4l-2-3.3 2.3-2.2 1.9 2.3H17V5.8h-1.7L13.6 3.7a1.5 1.5 0 0 0-2.2-.2L8.3 6.4a1.5 1.5 0 0 0-.1 2l2.3 3.6v4.5H12Z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10 2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z"/></svg>
           Ride from here
         </button>
         <a class="btn" href="${/iPhone|iPad|Macintosh/.test(navigator.userAgent) ? appleUrl : gUrl}" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.4l-7.3 7.3-1.4-1.4L17.6 5H14V3ZM5 5h6v2H5v12h12v-6h2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
           Open in Maps</a>
       </div>
       <div class="stats">
@@ -636,7 +646,7 @@
     const a = stations.get(trip.from), b = trip.to ? stations.get(trip.to) : null, r = trip.route;
     const mins = r ? r.duration / 60 : 0;
     const over = r && mins > FREE_RIDE_MIN;
-    const bikeSvg = '<svg viewBox="0 0 24 24"><path d="M5 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM19 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM12 16.5V12h3.5v-1.5H12.4l-2-3.3 2.3-2.2 1.9 2.3H17V5.8h-1.7L13.6 3.7a1.5 1.5 0 0 0-2.2-.2L8.3 6.4a1.5 1.5 0 0 0-.1 2l2.3 3.6v4.5H12Z"/></svg>';
+    const bikeSvg = '<svg viewBox="0 0 24 24"><path d="M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10 2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z"/></svg>';
     if (!setSheet(`
       <h2>Plan a ride</h2>
       <p class="sub">${b ? 'City bike route between two stations' : 'Tap a destination station on the map, or search for one'}</p>
@@ -863,7 +873,7 @@
       </li>`;
   const placeLi = (h, i) => `
       <li role="option" data-place="${i}">
-        <span class="place-ic"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg></span>
+        <span class="place-ic"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg></span>
         <span class="name">${esc(h.name)}<div class="sub">${esc([h.kind, h.addr].filter(Boolean).join(' · '))}</div></span>
       </li>`;
   let lastPlaces = [];
@@ -926,7 +936,7 @@
     if (selectedId) { const s = stations.get(selectedId); selectedId = null; paintPin(s); setSelectedLayer(); }
     if (!placeMarker) {
       const d = document.createElement('div'); d.className = 'place-wrap';
-      d.innerHTML = '<div class="place-pin"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg></div>';
+      d.innerHTML = '<div class="place-pin"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg></div>';
       placeMarker = new maplibregl.Marker({ element: d, anchor: 'bottom' });
     }
     placeMarker.setLngLat([h.lon, h.lat]).addTo(map);
@@ -943,7 +953,7 @@
       <p class="sub">${esc([h.kind, h.addr].filter(Boolean).join(' · '))}${me ? ' · ' + fmtDist(haversine(me, h)) + ' from you' : ''}</p>
       <div class="actions" style="margin-bottom:14px">
         <button class="btn primary" id="journey-btn">
-          <svg viewBox="0 0 24 24"><path d="M5 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM19 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM12 16.5V12h3.5v-1.5H12.4l-2-3.3 2.3-2.2 1.9 2.3H17V5.8h-1.7L13.6 3.7a1.5 1.5 0 0 0-2.2-.2L8.3 6.4a1.5 1.5 0 0 0-.1 2l2.3 3.6v4.5H12Z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10 2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z"/></svg>
           Get there by city bike
         </button>
       </div>
@@ -952,7 +962,7 @@
         <li data-id="${s.id}">
           <span class="station-pin ${level(s)}" style="width:30px;height:30px;font-size:12px;flex:none">${s.bikes}</span>
           <span class="name">${esc(s.name)}<div class="sub">${fmtDist(d)} walk · ${s.bikes} bikes · ${s.docks} free docks</div></span>
-          <svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <svg class="chev" viewBox="0 0 24 24"><path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
         </li>`).join('')}</ul>`, `place:${h.key}`)) return;
     el.sheetBody.querySelectorAll('.near li').forEach((li) => li.addEventListener('click', () => select(li.dataset.id, true)));
     $('journey-btn').addEventListener('click', () => planJourney(h));
@@ -1014,8 +1024,8 @@
     const total = legs ? legs.reduce((t, l) => t + l.route.duration, 0) : 0;
     const ride = legs?.find((l) => l.mode === 'bike');
     const rideMin = ride ? ride.route.duration / 60 : 0;
-    const walkSvg = '<svg viewBox="0 0 24 24"><path d="M13.5 5.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM9.8 8.9 7 22h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3a7.2 7.2 0 0 0 5.5 2.5v-2a5.2 5.2 0 0 1-4.5-2.5l-1-1.6a2 2 0 0 0-1.7-.9 2 2 0 0 0-.7.1L6 9.3V14h2v-3.4l1.8-.7Z"/></svg>';
-    const bikeSvg = '<svg viewBox="0 0 24 24"><path d="M5 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM19 12a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 8.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM12 16.5V12h3.5v-1.5H12.4l-2-3.3 2.3-2.2 1.9 2.3H17V5.8h-1.7L13.6 3.7a1.5 1.5 0 0 0-2.2-.2L8.3 6.4a1.5 1.5 0 0 0-.1 2l2.3 3.6v4.5H12Z"/></svg>';
+    const walkSvg = '<svg viewBox="0 0 24 24"><path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9 7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/></svg>';
+    const bikeSvg = '<svg viewBox="0 0 24 24"><path d="M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10 2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z"/></svg>';
     if (!setSheet(`
       <h2>To ${esc(h.name)}</h2>
       <p class="sub">${station ? `City bike station · ${h.bikes} bikes · ${h.docks} free docks` : esc([h.kind, h.addr].filter(Boolean).join(' · '))}</p>

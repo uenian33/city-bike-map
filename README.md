@@ -47,11 +47,13 @@ with live bike counts, your position, and a walking route to the nearest bike.
   drag between collapsed / half / full on compact widths (< 600 px), a
   floating side sheet on tablets, foldables, landscape phones and desktop.
   Safe-area aware (notch, Dynamic Island, home indicator, landscape insets).
-- Design system in `style.css` reconciles Apple HIG and Material 3: 48 px
-  touch targets, 4/8 px grid, M3 color roles tuned to Apple's system palette
-  (WCAG AA), rem-based type scale that follows the user's text size, pill
-  buttons, extended FAB, snackbar. Honours light/dark, reduced motion,
-  reduced transparency, increased contrast and forced colors.
+- Visual design follows the Google Maps app: opaque white surfaces with
+  Google elevation shadows, Google Sans, Material Icons, Google blue for
+  actions and tonal light-blue secondary buttons, green / yellow / grey
+  availability, walking routes as blue dots and rides as a green line. The
+  nearest-bike result is labelled "Your nearest bike". 48 px touch targets,
+  rem-based type that follows the user's text size; honours light/dark,
+  reduced motion, increased contrast and forced colors.
 
 ## Performance notes
 

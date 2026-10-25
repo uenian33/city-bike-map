@@ -1,56 +1,57 @@
 /* ==========================================================================
    Helsinki City Bikes — design system
-   One set of tokens that satisfies both Apple HIG (iOS 26 / Liquid Glass) and
-   Material 3 (Expressive):
-   - Touch targets: 48px (M3 48dp; exceeds HIG 44pt).
-   - Grid: 4/8px spacing; window-size classes from M3
+   Modelled on the Google Maps app (Material 3, Google's own palette):
+   - Opaque white surfaces with soft Google elevation shadows — no glass.
+   - Google blue (#0B57D0) for primary actions, tonal light-blue secondary buttons,
+     Google green / yellow / grey for availability, Google Sans type.
+   - Material Icons, pill-shaped search bar, chips and buttons; 16px-corner FAB;
+     28px-corner sheets.
+   - Touch targets ≥ 48px, 4/8px grid, M3 window-size classes
      (compact < 600, medium 600–839, expanded 840–1199, large ≥ 1200).
-   - Color roles: M3 names (primary / on-primary / surface-container…), values
-     tuned to Apple's system palette and checked for WCAG AA contrast.
-   - Type: system font (SF Pro on Apple, Roboto on Android), sizes in rem so
-     browser / OS text scaling is honoured; scale sits between HIG and M3.
-   - Shape: M3 corner scale; pills for buttons, as in both systems today.
+   - Sizes in rem so the user's text-size setting is honoured.
    ========================================================================== */
 
 /* ---------- Tokens ---------- */
 :root {
-  /* Color — light */
-  --primary: #0066d6;              /* white text on it: 5.4:1 */
+  /* Color — light (Google Material 3 baseline) */
+  --primary: #0b57d0;              /* white text on it: 6.6:1 */
   --on-primary: #ffffff;
-  --primary-container: #d8e6ff;
-  --on-primary-container: #00275a;
-  --surface: #f4f5f8;
+  --primary-container: #d3e3fd;
+  --on-primary-container: #041e49;
+  --tonal: #d3e3fd;                /* secondary buttons, selected chips */
+  --on-tonal: #0842a0;
+  --accent: #1a73e8;               /* blue dot, walking route */
+  --surface: #ffffff;
   --surface-container-lowest: #ffffff;
-  --surface-container-low: #fbfbfd;
-  --surface-container: #f0f2f5;
-  --surface-container-high: #e8ebf0;
-  --on-surface: #1a1c1e;
-  --on-surface-variant: #5f6368;   /* 5.3:1 on surface-container */
-  --outline: #8a8f96;
-  --outline-variant: rgba(60, 64, 67, 0.16);
-  --inverse-surface: #2e3033;
-  --inverse-on-surface: #f1f1f4;
+  --surface-container-low: #f8fafd;
+  --surface-container: #f0f4f9;
+  --surface-container-high: #e9eef6;
+  --on-surface: #1f1f1f;
+  --on-surface-variant: #444746;
+  --outline: #747775;
+  --outline-variant: #c4c7c5;
+  --inverse-surface: #303030;
+  --inverse-on-surface: #f2f2f2;
   --scrim: rgba(0, 0, 0, 0.32);
 
-  /* Status — fills (pins, dots) use Apple's vivid system colors;
-     *-text variants are the accessible tones used for text. */
-  --ok: #34c759;      --ok-text: #1b7f3b;     --ok-container: rgba(52, 199, 89, 0.14);
-  --warn: #ff9f0a;    --warn-text: #b45309;   --warn-container: rgba(255, 159, 10, 0.16);
-  --none: #8e8e93;
-  --error: #c62828;   --error-container: rgba(198, 40, 40, 0.1);
-  --hsl-yellow: #fcbc19;
+  /* Status — fills (pins, dots) and accessible text tones */
+  --ok: #1e8e3e;      --ok-text: #137333;     --ok-container: #e6f4ea;
+  --warn: #f9ab00;    --warn-text: #b06000;   --warn-container: #fef7e0;
+  --none: #80868b;
+  --error: #b3261e;   --error-container: #fce8e6;
+  --hsl-yellow: #fbbc04;
 
-  /* Materials (Liquid Glass for floating chrome, opaque-ish for sheets) */
-  --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-bg-strong: rgba(251, 251, 253, 0.92);
-  --glass-edge: rgba(255, 255, 255, 0.85);
-  --glass-blur: blur(20px) saturate(180%);
-  --glass-highlight: linear-gradient(160deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 40%);
+  /* Surfaces: Google Maps floats opaque cards over the map, not glass. */
+  --glass-bg: var(--surface);
+  --glass-bg-strong: var(--surface);
+  --glass-edge: transparent;
+  --glass-blur: none;
+  --glass-highlight: none;
 
-  /* Elevation (M3 levels 1–3, softened like iOS shadows) */
-  --elev-1: 0 1px 2px rgba(16, 24, 40, 0.10), 0 1px 3px rgba(16, 24, 40, 0.06);
-  --elev-2: 0 2px 6px rgba(16, 24, 40, 0.08), 0 8px 24px rgba(16, 24, 40, 0.12);
-  --elev-3: 0 4px 12px rgba(16, 24, 40, 0.10), 0 16px 40px rgba(16, 24, 40, 0.16);
+  /* Elevation (Google Material shadows) */
+  --elev-1: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+  --elev-2: 0 1px 2px rgba(60, 64, 67, 0.3), 0 2px 6px 2px rgba(60, 64, 67, 0.15);
+  --elev-3: 0 1px 3px rgba(60, 64, 67, 0.3), 0 4px 8px 3px rgba(60, 64, 67, 0.15);
 
   /* State layers (M3): overlay of the content color */
   --state-hover: color-mix(in srgb, currentColor 8%, transparent);
@@ -64,19 +65,19 @@
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px;
   --margin: 16px;                 /* window margin: 16 compact, 24 medium+ */
   --target: 48px;                 /* minimum touch target */
-  --bar-h: 56px;                  /* search bar / FAB height (M3) */
+  --bar-h: 56px;                  /* search bar height (M3) */
   --panel-w: 360px;               /* side sheet width (M3 standard) */
 
-  /* Type scale (rem → follows user text size) */
-  --font: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  --t-display: 700 1.75rem/2.125rem var(--font);    /* 28/34  iOS Title 1 */
-  --t-title-l: 700 1.375rem/1.75rem var(--font);    /* 22/28  M3 Title L, iOS Title 2 */
-  --t-title-m: 600 1rem/1.375rem var(--font);       /* 16/22  M3 Title M */
+  /* Type scale — Google Sans (rem → follows user text size) */
+  --font: "Google Sans", Roboto, system-ui, -apple-system, "Segoe UI", "Helvetica Neue", sans-serif;
+  --t-display: 500 1.75rem/2.25rem var(--font);     /* 28/36 */
+  --t-title-l: 400 1.375rem/1.75rem var(--font);    /* 22/28  M3 Title L */
+  --t-title-m: 500 1rem/1.5rem var(--font);         /* 16/24  M3 Title M */
   --t-body-l: 400 1rem/1.5rem var(--font);          /* 16/24  M3 Body L */
-  --t-body-m: 400 0.875rem/1.25rem var(--font);     /* 14/20  M3 Body M, iOS Subhead-ish */
-  --t-label-l: 600 0.9375rem/1.25rem var(--font);   /* 15/20  buttons */
-  --t-label-m: 500 0.75rem/1rem var(--font);        /* 12/16  captions, chip */
-  --t-overline: 600 0.75rem/1rem var(--font);       /* 12/16  section headers */
+  --t-body-m: 400 0.875rem/1.25rem var(--font);     /* 14/20  M3 Body M */
+  --t-label-l: 500 0.875rem/1.25rem var(--font);    /* 14/20  M3 Label L — buttons, chips */
+  --t-label-m: 500 0.75rem/1rem var(--font);        /* 12/16  M3 Label M */
+  --t-overline: 500 0.875rem/1.25rem var(--font);   /* 14/20  section headers (title small) */
 
   /* Safe areas (notch / Dynamic Island / home indicator / gesture bar / landscape) */
   --sat: env(safe-area-inset-top, 0px);
@@ -90,7 +91,7 @@
   --sheet-h: 0px;                 /* live height of the open bottom sheet (compact) */
   --stack-base: calc(var(--sab) + var(--sheet-h));
 
-  /* Motion: M3 emphasized curves; spring ≈ iOS default response */
+  /* Motion: M3 emphasized curves */
   --ease: cubic-bezier(.2, 0, 0, 1);
   --ease-decel: cubic-bezier(.05, .7, .1, 1);
   --ease-accel: cubic-bezier(.3, 0, .8, .15);
@@ -101,32 +102,32 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --primary: #4da3ff;            /* dark text on it: 7+:1; as text on surface: 6.4:1 */
-    --on-primary: #00264d;
-    --primary-container: #0b3a6e;
-    --on-primary-container: #d8e6ff;
-    --surface: #121316;
-    --surface-container-lowest: #0d0e10;
-    --surface-container-low: #1c1d21;
-    --surface-container: #222328;
-    --surface-container-high: #2a2c31;
-    --on-surface: #e6e7eb;
-    --on-surface-variant: #a0a4ab;
-    --outline: #6f747b;
-    --outline-variant: rgba(255, 255, 255, 0.12);
-    --inverse-surface: #e3e4e8;
-    --inverse-on-surface: #2e3033;
+    --primary: #a8c7fa;            /* dark text on it: 8:1 */
+    --on-primary: #062e6f;
+    --primary-container: #0842a0;
+    --on-primary-container: #d3e3fd;
+    --tonal: #004a77;
+    --on-tonal: #c2e7ff;
+    --accent: #8ab4f8;
+    --surface: #1f1f1f;
+    --surface-container-lowest: #0e0e0e;
+    --surface-container-low: #1b1b1b;
+    --surface-container: #282a2c;
+    --surface-container-high: #333537;
+    --on-surface: #e3e3e3;
+    --on-surface-variant: #c4c7c5;
+    --outline: #8e918f;
+    --outline-variant: #444746;
+    --inverse-surface: #e3e3e3;
+    --inverse-on-surface: #303030;
     --scrim: rgba(0, 0, 0, 0.5);
-    --ok: #30d158;  --ok-text: #30d158;  --ok-container: rgba(48, 209, 88, 0.16);
-    --warn: #ff9f0a; --warn-text: #ffb340; --warn-container: rgba(255, 159, 10, 0.18);
-    --error: #ff6961; --error-container: rgba(255, 105, 97, 0.14);
-    --glass-bg: rgba(30, 31, 36, 0.68);
-    --glass-bg-strong: rgba(28, 29, 33, 0.92);
-    --glass-edge: rgba(255, 255, 255, 0.14);
-    --glass-highlight: linear-gradient(160deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 40%);
-    --elev-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --elev-2: 0 2px 6px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.4);
-    --elev-3: 0 4px 12px rgba(0, 0, 0, 0.35), 0 16px 40px rgba(0, 0, 0, 0.5);
+    --ok: #81c995;  --ok-text: #81c995;  --ok-container: rgba(129, 201, 149, 0.16);
+    --warn: #fdd663; --warn-text: #fdd663; --warn-container: rgba(253, 214, 99, 0.14);
+    --none: #9aa0a6;
+    --error: #f2b8b5; --error-container: rgba(242, 184, 181, 0.14);
+    --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
+    --elev-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+    --elev-3: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 8px 3px rgba(0, 0, 0, 0.15);
   }
 }
 /* Window-size classes (M3). Medium+ widens margins. */
@@ -180,12 +181,7 @@ svg { flex: none; }
   color: var(--on-surface);
   transition: box-shadow var(--med) var(--ease), background-color var(--med) var(--ease), transform var(--med) var(--ease);
 }
-.glass::before {
-  /* specular rim along the top-left edge */
-  content: ""; position: absolute; inset: 0; border-radius: inherit;
-  background: var(--glass-highlight); pointer-events: none;
-  mix-blend-mode: soft-light;
-}
+.glass::before { content: none; } /* surfaces are opaque, as in Google Maps */
 .glass > * { position: relative; }
 
 /* Shared icon button: 48px target, 40px visible state layer */
@@ -254,7 +250,7 @@ svg { flex: none; }
 .results .cnt { font-weight: 600; font-variant-numeric: tabular-nums; }
 .results .station-pin::after { display: none; }
 .results .hdr {
-  min-height: 0; font: var(--t-overline); letter-spacing: .04em; text-transform: uppercase;
+  min-height: 0; font: var(--t-overline);
   color: var(--on-surface-variant); padding: var(--s3) var(--s3) var(--s1); cursor: default; gap: var(--s2);
 }
 .results .hdr:active, .results .empty:active { transform: none; background: none; }
@@ -296,7 +292,9 @@ svg { flex: none; }
 .fchip svg { width: 18px; height: 18px; fill: currentColor; color: var(--on-surface-variant); }
 .fchip::after { content: ""; position: absolute; inset: 0; border-radius: inherit; transition: background var(--fast); }
 .fchip:active::after { background: var(--state-press); }
-.fchip[aria-pressed="true"] { background: var(--primary-container); color: var(--on-primary-container); }
+.fchip[data-filter="bikes"] svg { color: var(--ok); }
+.fchip[data-filter="docks"] svg { color: var(--primary); }
+.fchip[aria-pressed="true"] { background: var(--tonal); color: var(--on-tonal); }
 .fchip[aria-pressed="true"] svg { color: inherit; }
 
 /* ---------- Round map buttons (layers, my location) ---------- */
@@ -345,7 +343,7 @@ svg { flex: none; }
   position: relative; display: grid; place-items: center;
   width: var(--fab-size); height: var(--fab-size); border-radius: var(--r-lg);
   background: var(--primary); color: var(--on-primary);
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 35%, transparent), var(--elev-1);
+  box-shadow: var(--elev-3);
   transition: transform var(--med) var(--spring), box-shadow var(--med) var(--ease);
 }
 .fab::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: transparent; transition: background var(--fast); }
@@ -457,13 +455,21 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 .sheet .close { position: absolute; top: var(--s2); right: var(--s2); z-index: 2; }
 .sheet .close::after { background: var(--surface-container-high); }
 .sheet .close svg { width: 20px; height: 20px; }
-.sheet h2 { margin: var(--s1) 48px var(--s1) 0; font: var(--t-title-l); letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.sheet h2 { margin: var(--s1) 48px var(--s1) 0; font: var(--t-title-l); overflow-wrap: anywhere; }
+/* "Your nearest bike" — Google-style tonal label above the title */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px; margin: var(--s1) 0 var(--s2);
+  height: 28px; padding: 0 var(--s3) 0 var(--s2); border-radius: var(--r-sm);
+  background: var(--ok-container); color: var(--ok-text); font: var(--t-label-l);
+}
+.badge svg { width: 18px; height: 18px; fill: currentColor; }
+.badge + h2 { margin-top: 0; }
 .sheet .sub { color: var(--on-surface-variant); font: var(--t-body-m); margin: 0 0 var(--s4); }
 
 /* Stats — tonal tiles */
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); margin-bottom: var(--s3); }
 .stat { background: var(--surface-container-high); border-radius: var(--r-lg); padding: var(--s3); transition: background var(--med); }
-.stat .v { font: var(--t-display); font-size: 1.5rem; line-height: 1.75rem; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; transition: color var(--med); }
+.stat .v { font: var(--t-display); font-size: 1.5rem; line-height: 1.75rem; font-variant-numeric: tabular-nums; transition: color var(--med); }
 .stat .l { font: var(--t-label-m); color: var(--on-surface-variant); margin-top: 2px; }
 .stat.ok { background: var(--ok-container); } .stat.ok .v { color: var(--ok-text); }
 .stat.warn { background: var(--warn-container); } .stat.warn .v { color: var(--warn-text); }
@@ -484,7 +490,7 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
   display: inline-flex; align-items: center; justify-content: center; gap: var(--s2);
   min-height: 44px; padding: var(--s2) var(--s5) var(--s2) var(--s4); border-radius: var(--r-full);
   font: var(--t-label-l); font-size: 0.875rem; text-align: center; white-space: nowrap;
-  background: var(--surface-container-high); color: var(--primary);
+  background: var(--tonal); color: var(--on-tonal);
   transition: transform var(--fast) var(--ease), background var(--med), box-shadow var(--med);
 }
 .btn::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: transparent; transition: background var(--fast); pointer-events: none; }
@@ -495,7 +501,7 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 .btn svg { width: 18px; height: 18px; fill: currentColor; position: relative; z-index: 1; }
 
 .route-summary { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--s1) var(--s3); margin: 0 0 var(--s3); }
-.route-summary .big { font: var(--t-display); letter-spacing: -0.02em; }
+.route-summary .big { font: var(--t-display); color: var(--ok-text); } /* Google shows ETAs in green */
 .route-summary .dim { color: var(--on-surface-variant); font: var(--t-body-m); }
 .steps { list-style: none; padding: 0; margin: var(--s4) 0 0; border-top: 1px solid var(--outline-variant); }
 .steps li { padding: var(--s3) 0; animation: rowIn var(--med) var(--ease-decel) both; border-bottom: 1px solid var(--outline-variant); font: var(--t-body-m); display: flex; gap: var(--s3); }
@@ -554,7 +560,7 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 
 .me-dot {
   width: 18px; height: 18px; border-radius: 50%;
-  background: #0a84ff;
+  background: #1a73e8;
   box-shadow: 0 0 0 3px #fff, 0 2px 8px rgba(0,0,0,.35);
   position: relative; pointer-events: none;
   animation: pinPop var(--slow) var(--spring);
@@ -562,17 +568,17 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
 .me-wrap { width: 18px; height: 18px; pointer-events: none; }
 .me-dot::before {
   content: ""; position: absolute; inset: -14px; border-radius: 50%;
-  background: #0a84ff; opacity: .25; animation: ping 2.4s ease-out infinite;
+  background: #1a73e8; opacity: .25; animation: ping 2.4s ease-out infinite;
 }
 @keyframes selectPulse { 0%, 100% { outline: 0 solid transparent; } 50% { outline: 6px solid color-mix(in srgb, var(--primary) 20%, transparent); } }
 @keyframes ping { 0% { transform: scale(.5); opacity: .4; } 100% { transform: scale(1.4); opacity: 0; } }
 
 /* ---------- Place pin & nearest list ---------- */
 .place-wrap { width: 38px; height: 44px; }
-.place-pin { width: 38px; height: 44px; color: #e5484d; filter: drop-shadow(0 3px 6px rgba(0,0,0,.3)); animation: drop .35s var(--ease-decel); }
+.place-pin { width: 38px; height: 44px; color: #ea4335; filter: drop-shadow(0 3px 6px rgba(0,0,0,.3)); animation: drop .35s var(--ease-decel); }
 .place-pin svg { width: 100%; height: 100%; fill: currentColor; stroke: #fff; stroke-width: 1; }
 @keyframes drop { from { transform: translateY(-16px); opacity: 0; } to { transform: none; opacity: 1; } }
-.lbl { font: var(--t-overline); letter-spacing: .04em; text-transform: uppercase; color: var(--on-surface-variant); margin: var(--s2) 0 var(--s1); }
+.lbl { font: var(--t-overline); color: var(--on-surface-variant); margin: var(--s2) 0 var(--s1); }
 .near { list-style: none; margin: 0; padding: 0; }
 .near li {
   display: flex; align-items: center; gap: var(--s4);
@@ -691,7 +697,6 @@ body.sheet-full .chips, body.sheet-full #layers { opacity: 0; transform: transla
   .icon-btn:hover::after, .ctrl:hover, .map-btn:hover::after, .fchip:hover::after, .menu-item:hover { background: var(--state-hover); }
   .results li:not(.hdr):not(.empty):hover, .near li:hover { background: var(--state-hover); }
   .btn:hover::after, .fab:hover::after { background: var(--state-hover); }
-  .fab:hover { box-shadow: 0 10px 24px color-mix(in srgb, var(--primary) 40%, transparent), var(--elev-1); }
   .view-opt:hover .thumb { transform: scale(1.05) translateY(-2px); }
   .pin-wrap:hover .station-pin { transform: scale(1.12); }
 }

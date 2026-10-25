@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f4f5f8" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#121316" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1f1f1f" media="(prefers-color-scheme: dark)">
   <meta name="color-scheme" content="light dark">
   <meta name="description" content="Live map of Helsinki & Espoo city bike stations: bikes available, your location, and a walking route to the nearest bike.">
   <title>Helsinki City Bikes</title>
@@ -16,6 +16,9 @@
   <link rel="preload" href="https://gbfs.theta.fifteen.eu/gbfs/2.2/helsinki/en/station_information.json" as="fetch" crossorigin>
   <link rel="preload" href="https://gbfs.theta.fifteen.eu/gbfs/2.2/helsinki/en/station_status.json" as="fetch" crossorigin>
   <link rel="preload" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/dist/maplibre-gl.js" as="script" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400..700&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/dist/maplibre-gl.css" crossorigin="">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -25,14 +28,14 @@
   <!-- Top search bar (Google Maps layout) -->
   <header class="glass search" id="search">
     <span class="lead" aria-hidden="true">
-      <svg viewBox="0 0 24 24"><path d="M10.5 3a7.5 7.5 0 0 1 5.96 12.05l4.25 4.24a1 1 0 0 1-1.42 1.42l-4.24-4.25A7.5 7.5 0 1 1 10.5 3Zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
     </span>
     <input id="search-input" type="search" placeholder="Search stations or destinations" autocomplete="off" spellcheck="false" aria-label="Search stations">
     <button class="icon-btn" id="clear-btn" aria-label="Clear search" hidden>
-      <svg viewBox="0 0 24 24"><path d="M18.3 5.7a1 1 0 0 0-1.4 0L12 10.6 7.1 5.7A1 1 0 0 0 5.7 7.1l4.9 4.9-4.9 4.9a1 1 0 1 0 1.4 1.4l4.9-4.9 4.9 4.9a1 1 0 0 0 1.4-1.4L13.4 12l4.9-4.9a1 1 0 0 0 0-1.4Z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
     </button>
     <button class="icon-btn" id="menu-btn" aria-label="About" title="About">
-      <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 5.2a1.3 1.3 0 1 1 0 2.6 1.3 1.3 0 0 1 0-2.6ZM13.5 17h-3v-1.5h.75v-3.75h-.75V10.2h2.25v5.3h.75Z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
     </button>
     <ul id="results" class="results" role="listbox" hidden></ul>
   </header>
@@ -40,18 +43,18 @@
   <!-- Filter chips under the search bar (Google Maps category row) -->
   <nav class="chips" id="chips" aria-label="Filter stations">
     <button class="glass fchip" data-filter="bikes" aria-pressed="false">
-      <svg viewBox="0 0 24 24"><path d="M5.5 10a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Zm0 2a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Zm13-2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Zm0 2a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM14 5a1 1 0 1 0 0 2h1.2l.9 2.2-3.8 3.5-2.1-3.7H11a1 1 0 1 0 0-2H7a1 1 0 0 0 0 2h.9l1 1.8-2.2 2.6 1.5 1.3 1.8-2.1 1.6 2.9a1 1 0 0 0 1.55.24l4.5-4.1.42 1 1.85-.76L16.9 5.6A1 1 0 0 0 16 5h-2Z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10 2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z"/></svg>
       Bikes available
     </button>
     <button class="glass fchip" data-filter="docks" aria-pressed="false">
-      <svg viewBox="0 0 24 24"><path d="M7 3h6a5 5 0 0 1 0 10h-4v7a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1h-1Zm2 2v6h4a3 3 0 0 0 0-6H9Z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M13 3H6v18h4v-6h3c3.31 0 6-2.69 6-6s-2.69-6-6-6zm.2 8H10V7h3.2c1.1 0 2 .9 2 2s-.9 2-2 2z"/></svg>
       Free docks
     </button>
   </nav>
 
   <!-- Map view (layers), top-right -->
   <button class="glass map-btn" id="layers" aria-label="Map view" title="Map view" aria-haspopup="menu" aria-controls="view-menu" aria-expanded="false">
-    <svg viewBox="0 0 24 24"><path d="M12 3 2 8.5 12 14l10-5.5L12 3Zm-7.7 8.1L2 12.5 12 18l10-5.5-2.3-1.4L12 15.4l-7.7-4.3ZM4.3 15.1 2 16.5 12 22l10-5.5-2.3-1.4L12 19.4l-7.7-4.3Z"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/></svg>
   </button>
 
   <!-- Live status, bottom-left -->
@@ -64,17 +67,17 @@
   <div class="stack" id="stack">
     <div class="glass zoom-group" role="group" aria-label="Zoom">
       <button class="ctrl" id="zoom-in" aria-label="Zoom in" title="Zoom in">
-        <svg viewBox="0 0 24 24"><path d="M12 5a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H6a1 1 0 1 1 0-2h5V6a1 1 0 0 1 1-1Z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
       </button>
       <button class="ctrl" id="zoom-out" aria-label="Zoom out" title="Zoom out">
-        <svg viewBox="0 0 24 24"><path d="M6 11h12a1 1 0 1 1 0 2H6a1 1 0 1 1 0-2Z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
       </button>
     </div>
     <button class="glass map-btn lg" id="locate" aria-label="My location" title="My location">
-      <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 3h-1.07A8 8 0 0 0 13 4.07V3a1 1 0 1 0-2 0v1.07A8 8 0 0 0 4.07 11H3a1 1 0 1 0 0 2h1.07A8 8 0 0 0 11 19.93V21a1 1 0 1 0 2 0v-1.07A8 8 0 0 0 19.93 13H21a1 1 0 1 0 0-2Zm-9 7a6 6 0 1 1 0-12 6 6 0 0 1 0 12Z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
     </button>
     <button class="fab" id="nearest-btn" aria-label="Directions to the nearest bike" title="Directions to the nearest bike">
-      <svg viewBox="0 0 24 24"><path d="M21.7 11.3l-9-9a1 1 0 0 0-1.4 0l-9 9a1 1 0 0 0 0 1.4l9 9a1 1 0 0 0 1.4 0l9-9a1 1 0 0 0 0-1.4ZM14 14.5V12h-4v3H8v-4a1 1 0 0 1 1-1h5V7.5l3.5 3.5L14 14.5Z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9a.996.996 0 0 0-1.41 0l-9 9a.996.996 0 0 0 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9a.996.996 0 0 0 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
     </button>
   </div>
 
@@ -88,7 +91,7 @@
       <button class="view-opt" data-view="dark" role="menuitemradio"><span class="thumb thumb-dark"></span>Dark</button>
     </div>
     <button class="menu-item" id="fit-all" role="menuitem">
-      <svg viewBox="0 0 24 24"><path d="M4 4h6v2H6v4H4V4Zm10 0h6v6h-2V6h-4V4ZM4 14h2v4h4v2H4v-6Zm14 0h2v6h-6v-2h4v-4Z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M15 3l2.3 2.3-2.89 2.87 1.42 1.42L18.7 6.7 21 9V3h-6zM3 9l2.3-2.3 2.87 2.89 1.42-1.42L6.7 5.3 9 3H3v6zm6 12l-2.3-2.3 2.89-2.87-1.42-1.42L5.3 17.3 3 15v6h6zm12-6l-2.3 2.3-2.87-2.89-1.42 1.42 2.89 2.87L15 21h6v-6z"/></svg>
       Show all stations
     </button>
   </div>
@@ -97,7 +100,7 @@
   <aside class="glass sheet" id="sheet" hidden aria-live="polite">
     <div class="grabber-hit" id="grabber" role="button" aria-label="Collapse or expand"><div class="grabber"></div></div>
     <button class="icon-btn close" id="sheet-close" aria-label="Close">
-      <svg viewBox="0 0 24 24"><path d="M18.3 5.7a1 1 0 0 0-1.4 0L12 10.6 7.1 5.7A1 1 0 0 0 5.7 7.1l4.9 4.9-4.9 4.9a1 1 0 1 0 1.4 1.4l4.9-4.9 4.9 4.9a1 1 0 0 0 1.4-1.4L13.4 12l4.9-4.9a1 1 0 0 0 0-1.4Z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
     </button>
     <div class="sheet-body" id="sheet-body"></div>
   </aside>
