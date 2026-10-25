@@ -13,7 +13,6 @@
   const $ = (id) => document.getElementById(id);
   const el = {
     map: $('map'), search: $('search-input'), clear: $('clear-btn'), results: $('results'),
-    chip: $('status-chip'), statusText: $('status-text'), liveDot: $('live-dot'),
     sheet: $('sheet'), sheetBody: $('sheet-body'), sheetClose: $('sheet-close'),
     locate: $('locate'), nearest: $('nearest-btn'), fitAll: $('fit-all'),
     about: $('about'), menu: $('menu-btn'),
@@ -313,17 +312,8 @@
   // Swap between GL circles and HTML pins the moment the zoom crosses the threshold, not at moveend.
   let abovePinZoom = false;
   map.on('zoom', () => { const a = map.getZoom() >= PIN_ZOOM; if (a !== abovePinZoom) { abovePinZoom = a; syncPins(); } });
-  function totals() {
-    let bikes = 0, n = 0;
-    for (const s of stations.values()) { bikes += s.bikes; n++; }
-    return { bikes, n };
-  }
-  function paintStatus(at, stale = false) {
-    const { bikes, n } = totals();
-    el.chip.classList.remove('tick'); void el.chip.offsetWidth; el.chip.classList.add('tick');
-    el.statusText.textContent = `${n} stations · ${bikes.toLocaleString('en')} bikes · ${at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}${stale ? ' · updating…' : ''}`;
-    el.liveDot.classList.toggle('dot-stale', stale);
-  }
+  // No status pill: data problems surface as a snackbar, once per run of failures.
+  let feedFailed = false;
   let cacheInfo = null, cacheStatus = null;
   async function refresh(initial = false) {
     if (initial) {
@@ -332,7 +322,6 @@
         applyInfo(c.info.data); applyStatus(c.status.data);
         cacheInfo = c.info; cacheStatus = c.status;
         renderStations();
-        paintStatus(new Date((c.status.last_updated || 0) * 1000 || c.at), true);
         if (!frameMe()) fitAll(false);
       }
     }
@@ -342,14 +331,13 @@
       cacheStatus = status;
       writeCache(cacheInfo, cacheStatus);
       renderStations();
-      paintStatus(status.last_updated ? new Date(status.last_updated * 1000) : new Date());
-      el.liveDot.classList.remove('dot-err'); el.liveDot.classList.add('dot-live');
+      feedFailed = false;
       rerenderSheet();
       if (initial && !frameMe() && !fitDone) fitAll(false);
     } catch (err) {
       console.error(err);
-      el.statusText.textContent = initial ? 'Could not load stations' : 'Live update failed — retrying';
-      el.liveDot.classList.add('dot-err'); el.liveDot.classList.remove('dot-live');
+      if (!feedFailed) toast(initial && !stations.size ? 'Could not load stations — check your connection' : 'Live update failed — retrying every minute');
+      feedFailed = true;
     }
   }
 
@@ -368,7 +356,7 @@
     const top = Math.max(r(el.searchBar).bottom, r(el.chips).bottom);
     const left = isWide() && !el.sheet.hidden ? r(el.sheet).right : 0;
     const right = 0;
-    const bottom = innerHeight - Math.min(r(el.nearest).top, r(el.chip).top);
+    const bottom = innerHeight - r(el.nearest).top;
     return { top: Math.round(top + PIN), left: Math.round(left + PIN), right: Math.round(right + PIN), bottom: Math.round(bottom + PIN / 2) };
   }
   // Centre on the user at a zoom that shows at least NEARBY_COUNT stations. Returns false when
@@ -418,7 +406,7 @@
     clearTimeout(sheetCloseTimer);
     el.sheet.classList.remove('closing');
     if (el.sheet.hidden) { el.sheet.hidden = false; el.sheet.classList.add('opening'); setTimeout(() => el.sheet.classList.remove('opening'), 400); }
-    applySnap('half'); el.chip.classList.add('pushed');
+    applySnap('half');
     requestAnimationFrame(updateStack);
   }
   function closeSheet() {
@@ -427,7 +415,6 @@
       sheetCloseTimer = setTimeout(() => { el.sheet.hidden = true; el.sheet.classList.remove('closing'); updateStack(); }, 260);
       updateStack();
     }
-    el.chip.classList.remove('pushed');
     const s = selectedId ? stations.get(selectedId) : null;
     selectedId = null;
     if (s) paintPin(s);
@@ -466,7 +453,7 @@
     // filter chips; a sheet that reaches the top chrome hides that too.
     const topChrome = el.chips.getBoundingClientRect().bottom;
     const room = innerHeight - h - topChrome;
-    const STACK_ROOM = 56 + 12 + 32 + 32; // FAB row + status pill + margins
+    const STACK_ROOM = 56 + 32; // FAB row + margins
     document.body.classList.toggle('sheet-tall', h > 0 && room < STACK_ROOM);
     document.body.classList.toggle('sheet-full', h > 0 && room < 8);
     document.body.classList.toggle('sheet-open', h > 0);

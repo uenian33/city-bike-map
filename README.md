@@ -20,7 +20,7 @@ with live bike counts, your position, and a walking route to the nearest bike.
   under it (**Bikes available**, **Free docks**) and the Map view button at
   the right end of that row ("Show all stations" lives in its menu). At the
   bottom, the yellow **Your nearest station** button sits in the middle with
-  My location to its right and the live status just above. No zoom buttons:
+  My location to its right. No zoom buttons:
   pinch, scroll or double-tap. While a phone's bottom sheet is open the bottom
   controls step aside; on wider screens the chips continue the top row beside
   the search bar. A station's actions sit under its title, Ride from here first.
@@ -60,14 +60,14 @@ with live bike counts, your position, and a walking route to the nearest bike.
 ## Performance notes
 
 - Station metadata and the last status are cached in `localStorage`, so a
-  revisit paints all pins before the network answers (the chip says
-  "updating…" until fresh data lands). Both feeds load in parallel and are
+  revisit paints all pins before the network answers; fresh data replaces
+  them silently, and a failed feed shows a snackbar once. Both feeds load in parallel and are
   `preload`ed from the HTML head.
 - Zoomed out, stations are GPU layers; zoomed in, only stations inside the
   viewport are HTML pins. Pin repaints are diffed, and the sheet only
   re-renders (and only animates) when its subject changes.
-- Glass surfaces use a 16 px blur; the opaque FAB has none; the live dot
-  pulses with a composited transform rather than an animated shadow.
+- Surfaces are opaque (no backdrop blur), so floating controls cost no extra
+  GPU compositing over the map.
 
 ## Stack
 
