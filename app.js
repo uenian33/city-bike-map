@@ -64,6 +64,15 @@
     refreshExpiredTiles: false, fadeDuration: 150,
   });
   map.touchZoomRotate.disableRotation();
+  // In-app browsers (Instagram, Facebook…) open the page while their sheet is still animating in
+  // and don't always fire 'resize' afterwards, leaving the canvas sized for a fraction of the
+  // screen. Follow the container itself, plus the visual viewport, and re-check after load.
+  const fitCanvas = () => map.resize();
+  new ResizeObserver(fitCanvas).observe(el.map);
+  window.visualViewport?.addEventListener('resize', fitCanvas);
+  addEventListener('orientationchange', fitCanvas);
+  addEventListener('pageshow', fitCanvas);
+  map.once('load', () => { fitCanvas(); setTimeout(fitCanvas, 400); setTimeout(fitCanvas, 1500); });
   map.addControl(new maplibregl.AttributionControl({
     compact: true,
     customAttribution: 'Bikes: HSL / Fifteen',
@@ -284,15 +293,10 @@
     return r.json();
   };
   let infoLoaded = false;
-  async function loadInfo() {
-    const j = await fetchJson(`${GBFS}/station_information.json`);
-    applyInfo(j.data); infoLoaded = true; return j;
-  }
-  async function loadStatus() {
-    const j = await fetchJson(`${GBFS}/station_status.json`);
-    applyStatus(j.data);
-    return j;
-  }
+  // The two feeds load in parallel but are applied in order (info, then status): status that
+  // arrives first on a cold start would otherwise find no stations and every count would stay 0.
+  const loadInfo = () => fetchJson(`${GBFS}/station_information.json`);
+  const loadStatus = () => fetchJson(`${GBFS}/station_status.json`);
   function renderStations() {
     stationGeo = {
       type: 'FeatureCollection',
@@ -351,6 +355,8 @@
     }
     try {
       const [info, status] = await Promise.all([initial || !infoLoaded ? loadInfo() : null, loadStatus()]);
+      if (info) { applyInfo(info.data); infoLoaded = true; }
+      applyStatus(status.data);
       if (info) cacheInfo = info;
       cacheStatus = status;
       writeCache(cacheInfo, cacheStatus);
