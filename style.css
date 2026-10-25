@@ -337,6 +337,8 @@ svg { flex: none; }
   animation: riseIn var(--slow) var(--ease-decel) .12s backwards;
 }
 .stack > * { pointer-events: auto; }
+/* Same inset as the card's padding, so my location sits directly above the go button. */
+.stack > #locate { margin-right: var(--s3); }
 .near-card {
   width: 100%; min-height: var(--card-h);
   display: flex; align-items: center; gap: var(--s3);
