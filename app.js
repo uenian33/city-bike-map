@@ -21,6 +21,17 @@
 
   // ---------- Map ----------
   const dark = matchMedia('(prefers-color-scheme: dark)');
+  // M3 window-size classes: compact (< 600px) uses a bottom sheet, medium and up a side sheet.
+  const wideMq = matchMedia('(min-width: 600px)');
+  const isWide = () => wideMq.matches;
+  // Map padding that keeps a fitted route clear of the search bar, side sheet and controls.
+  function routePadding() {
+    if (isWide()) {
+      const left = el.sheet.hidden ? 40 : Math.round(el.sheet.getBoundingClientRect().right) + 32;
+      return { top: 96, left, right: 96, bottom: 48 };
+    }
+    return { top: 136, left: 32, right: 32, bottom: Math.round(innerHeight * 0.5) + 32 };
+  }
   const OFM = 'https://tiles.openfreemap.org/styles/';
   const SATELLITE_STYLE = {
     version: 8,
@@ -96,14 +107,14 @@
         'text-size': ['interpolate', ['linear'], ['zoom'], 11, 8, 13, 11, PIN_ZOOM, 12],
         'text-allow-overlap': true, 'text-ignore-placement': true,
       },
-      paint: { 'text-color': ['case', ['==', ['get', 'level'], 'none'], '#8e8e93', isDark ? '#f2f2f7' : '#1c1c1e'] },
+      paint: { 'text-color': ['case', ['==', ['get', 'level'], 'none'], '#8e8e93', isDark ? '#e6e7eb' : '#1a1c1e'] },
     });
     map.addSource('route', { type: 'geojson', data: routeGeo });
     map.addSource('me-acc', { type: 'geojson', data: accGeo });
     map.addLayer({ id: 'me-acc', type: 'fill', source: 'me-acc', paint: { 'fill-color': '#0a84ff', 'fill-opacity': 0.1 } });
     map.addLayer({ id: 'me-acc-line', type: 'line', source: 'me-acc', paint: { 'line-color': '#0a84ff', 'line-opacity': 0.35, 'line-width': 1 } });
     map.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': isDark ? '#111318' : '#ffffff', 'line-width': 10, 'line-opacity': 0.9 } });
+      paint: { 'line-color': isDark ? '#121316' : '#ffffff', 'line-width': 10, 'line-opacity': 0.9 } });
     map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': ['match', ['get', 'mode'], 'bike', '#34c759', '#0a84ff'], 'line-width': 6 } });
   }
@@ -330,8 +341,7 @@
     for (const s of stations.values()) b.extend([s.lon, s.lat]);
     if (b.isEmpty()) return;
     fitDone = true;
-    const wide = matchMedia('(min-width: 720px)').matches;
-    const padding = wide ? { top: 90, left: 40, right: 80, bottom: 60 } : { top: 110, left: 24, right: 24, bottom: 110 };
+    const padding = isWide() ? { top: 96, left: 40, right: 96, bottom: 48 } : { top: 136, left: 24, right: 24, bottom: 120 };
     map.fitBounds(b, { padding, animate, maxZoom: 15, duration: animate ? 700 : 0 });
   }
 
@@ -380,7 +390,7 @@
   const grabber = $('grabber');
   const SNAP = { collapsed: 150 };
   const snapHeights = () => ({ collapsed: SNAP.collapsed, half: Math.round(innerHeight * 0.5), full: Math.round(innerHeight * 0.9) });
-  const isPhone = () => !matchMedia('(min-width: 720px)').matches;
+  const isPhone = () => !isWide();
   let drag = null; // { y0, h0, t0, moved }
   function sheetHeight() { return el.sheet.getBoundingClientRect().height; }
   function applySnap(name) {
@@ -399,7 +409,12 @@
       h = Math.max(0, el.sheet.offsetHeight - ty);
     }
     document.documentElement.style.setProperty('--sheet-h', `${Math.round(h)}px`);
-    document.body.classList.toggle('sheet-tall', h > innerHeight * 0.55);
+    // Space between the status chip and the sheet decides what floats above it: the whole
+    // stack, only the FAB (short phones), or nothing (tall sheet).
+    const room = innerHeight - h - el.chip.getBoundingClientRect().bottom;
+    const FAB_ROOM = 104, STACK_ROOM = 280; // FAB + margins; FAB + layers/fit + locate groups
+    document.body.classList.toggle('sheet-tall', h > 0 && room < FAB_ROOM);
+    document.body.classList.toggle('stack-tight', h > 0 && room < STACK_ROOM);
     document.body.classList.toggle('sheet-open', h > 0);
   }
   new ResizeObserver(updateStack).observe(el.sheet);
@@ -735,11 +750,7 @@
     const b = new maplibregl.LngLatBounds([from.lon, from.lat], [from.lon, from.lat]);
     for (const c of route.coords) b.extend(c);
     b.extend([to.lon, to.lat]);
-    const wide = matchMedia('(min-width: 720px)').matches;
-    const padding = wide
-      ? { top: 90, left: 470, right: 80, bottom: 60 }
-      : { top: 100, left: 30, right: 30, bottom: Math.round(innerHeight * 0.5) + 30 };
-    map.fitBounds(b, { padding, maxZoom: 17, duration: 800 });
+    map.fitBounds(b, { padding: routePadding(), maxZoom: 17, duration: 800 });
   }
 
   let routing = false;
@@ -942,8 +953,7 @@
       const bounds = new maplibregl.LngLatBounds([me.lon, me.lat], [me.lon, me.lat]);
       for (const l of legs) for (const c of l.route.coords) bounds.extend(c);
       bounds.extend([h.lon, h.lat]);
-      const wide = matchMedia('(min-width: 720px)').matches;
-      map.fitBounds(bounds, { padding: wide ? { top: 90, left: 470, right: 80, bottom: 60 } : { top: 100, left: 30, right: 30, bottom: Math.round(innerHeight * 0.5) + 30 }, maxZoom: 16, duration: 800 });
+      map.fitBounds(bounds, { padding: routePadding(), maxZoom: 16, duration: 800 });
       renderJourneySheet();
     } catch (e) {
       toast(e.message);

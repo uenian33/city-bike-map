@@ -33,9 +33,15 @@ with live bike counts, your position, and a walking route to the nearest bike.
 - **Map view** switcher: Standard (follows light/dark), Detailed, Satellite
   (Esri World Imagery), Dark. Remembered across visits.
 - Refreshes every 60 s and whenever the tab becomes visible again.
-- Responsive: side panel on desktop and tablet, bottom sheet on phones that
-  you drag between collapsed / half / full.
-  Follows the system light/dark theme.
+- Responsive, following Material 3 window-size classes: a bottom sheet you
+  drag between collapsed / half / full on compact widths (< 600 px), a
+  floating side sheet on tablets, foldables, landscape phones and desktop.
+  Safe-area aware (notch, Dynamic Island, home indicator, landscape insets).
+- Design system in `style.css` reconciles Apple HIG and Material 3: 48 px
+  touch targets, 4/8 px grid, M3 color roles tuned to Apple's system palette
+  (WCAG AA), rem-based type scale that follows the user's text size, pill
+  buttons, extended FAB, snackbar. Honours light/dark, reduced motion,
+  reduced transparency, increased contrast and forced colors.
 
 ## Performance notes
 
